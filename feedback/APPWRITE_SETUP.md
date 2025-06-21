@@ -152,6 +152,65 @@ If you want to add user authentication:
 ✅ **TypeScript Support**: Fully typed interfaces
 ✅ **Real-time Updates**: Automatic UI updates after operations
 
+## 🚨 TROUBLESHOOTING - CURRENT ISSUE
+
+**Your application is configured but data isn't saving to the database. Here's how to fix it:**
+
+### Step 1: Check Browser Console
+1. Go to `http://localhost:3001/dashboard/teachers`
+2. Press F12 to open Developer Console
+3. Look for configuration logs:
+```
+🔧 Appwrite Configuration:
+- Endpoint: https://cloud.appwrite.io/v1
+- Project ID: 68567c270022407815f0
+- Database ID: 68567c3a002af4b231c1
+```
+
+### Step 2: Test Adding a Teacher
+1. Click "Add New Teacher"
+2. Fill the form and submit
+3. Watch console for these logs:
+   - `🚀 Attempting to save teacher to Appwrite...`
+   - `📝 Creating document in collection: teachers`
+   - Either `✅ Successfully created` or `❌ Error saving`
+
+### Step 3: Likely Issues & Solutions
+
+**Issue 1: Collections Don't Exist**
+```
+❌ Error: Collection with the requested ID could not be found
+```
+**Solution:** Create these collections in Appwrite Console:
+- `teachers` (with attributes: name, employeeId, department, class, subjects, email, phone)
+- `subjects`, `classes`, `departments`, etc.
+
+**Issue 2: Wrong Project/Database ID**
+```
+❌ Error: Project with the requested ID could not be found
+```
+**Solution:** Verify in Appwrite Console that:
+- Project ID is: `68567c270022407815f0`
+- Database ID is: `68567c3a002af4b231c1`
+
+**Issue 3: Permissions**
+```
+❌ Error: User (role: guests) missing scope
+```
+**Solution:** Set permissions in each collection to "Any" for Create/Read/Update/Delete
+
+### Step 4: Quick Fix
+1. **Go to [Appwrite Console](https://cloud.appwrite.io/)**
+2. **Open project: `68567c270022407815f0`**
+3. **Open database: `68567c3a002af4b231c1`**
+4. **Create collection: `teachers`**
+5. **Add attributes and set permissions to "Any"**
+6. **Try adding a teacher again**
+
+**The console logs will tell you exactly what's wrong!**
+
+---
+
 ## Next Steps
 
 1. Set up Appwrite project and collections

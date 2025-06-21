@@ -1,52 +1,52 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
 
 interface Question {
-  id: string;
+  $id?: string;
   question: string;
   type: 'rating' | 'text' | 'multiple_choice';
   options?: string[];
   required: boolean;
   category: string;
+  order?: number;
 }
 
 export default function QuestionsForm() {
-  const [questions, setQuestions] = useState<Question[]>([
-    {
-      id: '1',
-      question: 'How would you rate the teacher\'s communication skills?',
-      type: 'rating',
-      required: true,
-      category: 'Communication',
-    },
-    {
-      id: '2',
-      question: 'Does the teacher explain concepts clearly?',
-      type: 'multiple_choice',
-      options: ['Always', 'Usually', 'Sometimes', 'Rarely', 'Never'],
-      required: true,
-      category: 'Teaching Quality',
-    },
-    {
-      id: '3',
-      question: 'What improvements would you suggest for this teacher?',
-      type: 'text',
-      required: false,
-      category: 'Suggestions',
-    },
-  ]);
-
+  const [questions, setQuestions] = useState<Question[]>([]);  const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
-  const [formData, setFormData] = useState<Omit<Question, 'id'>>({
+  const [formData, setFormData] = useState<Omit<Question, '$id'>>({
     question: '',
     type: 'rating',
     options: [],
     required: false,
     category: '',
+    order: 1,
   });
+
+  // Load questions from database on component mount
+  useEffect(() => {
+    fetchQuestions();
+  }, []);
+
+  const fetchQuestions = async () => {
+    try {
+      setLoading(true);
+      console.log('🔍 Fetching questions from database...');
+      const response = await dbHelpers.getAll(COLLECTIONS.QUESTIONS);
+      console.log('✅ Successfully fetched questions:', response);
+      setQuestions(response.documents as unknown as Question[]);
+    } catch (error) {
+      console.error('❌ Error fetching questions:', error);
+      console.log('📝 Using empty array as fallback');
+      setQuestions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const questionTypes = [
     { value: 'rating', label: 'Rating (1-5 scale)' },
@@ -62,26 +62,54 @@ export default function QuestionsForm() {
     'Student Engagement',
     'Suggestions',
     'General',
-  ];
-
-  const handleSubmit = (e: React.FormEvent) => {
+  ];  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingQuestion) {
-      setQuestions(questions.map(question => 
-        question.id === editingQuestion.id 
-          ? { ...formData, id: editingQuestion.id }
-          : question
-      ));
-    } else {
-      const newQuestion: Question = {
-        ...formData,
-        id: Date.now().toString(),
-      };
-      setQuestions([...questions, newQuestion]);
+    try {
+      setLoading(true);
+      console.log('🚀 Attempting to save question to database...');
+      
+      if (editingQuestion) {
+        // Update existing question
+        console.log('📝 Updating question with ID:', editingQuestion.$id);
+        await dbHelpers.update(COLLECTIONS.QUESTIONS, editingQuestion.$id!, formData);
+        setQuestions(questions.map(question => 
+          question.$id === editingQuestion.$id 
+            ? { ...formData, $id: editingQuestion.$id }
+            : question
+        ));
+      } else {
+        // Add new question
+        console.log('➕ Creating new question...');
+        const newQuestion = await dbHelpers.create(COLLECTIONS.QUESTIONS, formData);
+        console.log('✅ Successfully created question:', newQuestion);
+        setQuestions([...questions, newQuestion as unknown as Question]);
+      }
+      
+      resetForm();
+      alert('Question saved successfully!');
+    } catch (error) {
+      console.error('❌ Error saving question:', error);
+      alert(`Failed to save to database: ${error}. Data will be saved locally for demo purposes.`);
+      
+      // Fallback to local state
+      if (editingQuestion) {
+        setQuestions(questions.map(question => 
+          question.$id === editingQuestion.$id 
+            ? { ...formData, $id: editingQuestion.$id }
+            : question
+        ));
+      } else {
+        const newQuestion: Question = {
+          ...formData,
+          $id: Date.now().toString(),
+        };
+        setQuestions([...questions, newQuestion]);
+      }
+      resetForm();
+    } finally {
+      setLoading(false);
     }
-    
-    resetForm();
   };
 
   const resetForm = () => {
@@ -108,8 +136,19 @@ export default function QuestionsForm() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setQuestions(questions.filter(question => question.id !== id));
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this question?')) return;
+    
+    try {
+      console.log('🗑️ Deleting question with ID:', id);
+      await dbHelpers.delete(COLLECTIONS.QUESTIONS, id);
+      setQuestions(questions.filter(question => question.$id !== id));
+      alert('Question deleted successfully!');
+    } catch (error) {
+      console.error('❌ Error deleting question:', error);
+      // Fallback to local state
+      setQuestions(questions.filter(question => question.$id !== id));
+    }
   };
 
   const handleOptionChange = (index: number, value: string) => {
@@ -185,7 +224,13 @@ export default function QuestionsForm() {
           </div>
           
           <div className="p-6 space-y-4">
-            {questions.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500 dark:text-gray-400">
+                  Loading questions...
+                </div>
+              </div>
+            ) : questions.length === 0 ? (
               <div className="text-center py-8">
                 <div className="text-gray-400 text-6xl mb-4">📝</div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
@@ -198,7 +243,7 @@ export default function QuestionsForm() {
             ) : (
               questions.map((question, index) => (
                 <div
-                  key={question.id}
+                  key={question.$id}
                   className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600"
                 >
                   <div className="flex items-start justify-between">
@@ -281,7 +326,7 @@ export default function QuestionsForm() {
                         ✏️
                       </button>
                       <button
-                        onClick={() => handleDelete(question.id)}
+                        onClick={() => handleDelete(question.$id!)}
                         className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
                         title="Delete question"
                       >

@@ -1,5 +1,13 @@
 import { Client, Databases, Account, ID, Query } from 'appwrite';
 
+// Log configuration status (client-side only)
+if (typeof window !== 'undefined') {
+  console.log('🔧 Appwrite Configuration:');
+  console.log('- Endpoint:', process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT);
+  console.log('- Project ID:', process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID);
+  console.log('- Database ID:', process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID);
+}
+
 const client = new Client();
 
 client
@@ -27,18 +35,25 @@ export const dbHelpers = {
   // Generic CRUD operations
   async create(collectionId: string, data: Record<string, unknown>) {
     try {
-      return await databases.createDocument(DATABASE_ID, collectionId, ID.unique(), data);
+      console.log(`📝 Creating document in collection: ${collectionId}`);
+      console.log('Data:', data);
+      const result = await databases.createDocument(DATABASE_ID, collectionId, ID.unique(), data);
+      console.log('✅ Document created successfully:', result);
+      return result;
     } catch (error) {
-      console.error('Error creating document:', error);
+      console.error(`❌ Error creating document in collection ${collectionId}:`, error);
       throw error;
     }
   },
 
   async getAll(collectionId: string, queries: string[] = []) {
     try {
-      return await databases.listDocuments(DATABASE_ID, collectionId, queries);
+      console.log(`📖 Fetching documents from collection: ${collectionId}`);
+      const result = await databases.listDocuments(DATABASE_ID, collectionId, queries);
+      console.log(`✅ Found ${result.documents.length} documents`);
+      return result;
     } catch (error) {
-      console.error('Error fetching documents:', error);
+      console.error(`❌ Error fetching documents from collection ${collectionId}:`, error);
       throw error;
     }
   },

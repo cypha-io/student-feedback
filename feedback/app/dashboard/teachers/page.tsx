@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Teacher } from '@/types/database';
+import { Teacher, Department, Class as ClassType } from '@/types/database';
 import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
 
 export default function ManageTeachers() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);  const [loading, setLoading] = useState(false);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [classes, setClasses] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [formData, setFormData] = useState<Omit<Teacher, '$id' | '$createdAt' | '$updatedAt'>>({
@@ -22,15 +25,22 @@ export default function ManageTeachers() {
   // Load teachers from database on component mount
   useEffect(() => {
     fetchTeachers();
+    fetchDepartments();
+    fetchClasses();
   }, []);
 
   const fetchTeachers = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Attempting to fetch teachers from Appwrite...');
+      console.log('Collection ID:', COLLECTIONS.TEACHERS);
+      
       const response = await dbHelpers.getAll(COLLECTIONS.TEACHERS);
+      console.log('✅ Successfully fetched teachers:', response);
       setTeachers(response.documents as unknown as Teacher[]);
     } catch (error) {
-      console.error('Error fetching teachers:', error);
+      console.error('❌ Error fetching teachers:', error);
+      console.log('📝 Using empty array as fallback');
       // For demo purposes if Appwrite is not configured, use empty array
       setTeachers([]);
     } finally {
@@ -38,18 +48,48 @@ export default function ManageTeachers() {
     }
   };
 
-  const departments = ['Mathematics', 'Science', 'English', 'History', 'Computer Science', 'Art'];
-  const classes = ['9th Grade', '10th Grade', '11th Grade', '12th Grade'];
+  const fetchDepartments = async () => {
+    try {
+      console.log('🔍 Fetching departments from database...');
+      const response = await dbHelpers.getAll(COLLECTIONS.DEPARTMENTS);
+      const deptNames = (response.documents as unknown as Department[]).map(dept => dept.name);
+      setDepartments(deptNames);
+      console.log('✅ Loaded departments:', deptNames);
+    } catch (error) {
+      console.error('❌ Error fetching departments:', error);
+      // Fallback to default options
+      setDepartments(['Mathematics', 'Science', 'English', 'History', 'Computer Science', 'Art']);
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      console.log('🔍 Fetching classes from database...');
+      const response = await dbHelpers.getAll(COLLECTIONS.CLASSES);
+      const classNames = (response.documents as unknown as ClassType[]).map(cls => cls.name);
+      setClasses(classNames);
+      console.log('✅ Loaded classes:', classNames);
+    } catch (error) {
+      console.error('❌ Error fetching classes:', error);
+      // Fallback to default options
+      setClasses(['9th Grade', '10th Grade', '11th Grade', '12th Grade']);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
       setLoading(true);
+      console.log('🚀 Attempting to save teacher to Appwrite...');
+      console.log('Form data:', formData);
+      console.log('Collection ID:', COLLECTIONS.TEACHERS);
       
       if (editingTeacher) {
         // Update existing teacher
-        await dbHelpers.update(COLLECTIONS.TEACHERS, editingTeacher.$id!, formData);
+        console.log('📝 Updating teacher with ID:', editingTeacher.$id);
+        const updatedTeacher = await dbHelpers.update(COLLECTIONS.TEACHERS, editingTeacher.$id!, formData);
+        console.log('✅ Successfully updated teacher:', updatedTeacher);
         setTeachers(teachers.map(teacher => 
           teacher.$id === editingTeacher.$id 
             ? { ...formData, $id: editingTeacher.$id } as Teacher
@@ -57,13 +97,21 @@ export default function ManageTeachers() {
         ));
       } else {
         // Add new teacher
+        console.log('➕ Creating new teacher...');
         const newTeacher = await dbHelpers.create(COLLECTIONS.TEACHERS, formData);
+        console.log('✅ Successfully created teacher:', newTeacher);
         setTeachers([...teachers, newTeacher as unknown as Teacher]);
       }
       
       resetForm();
+      alert('Teacher saved successfully!');
     } catch (error) {
-      console.error('Error saving teacher:', error);
+      console.error('❌ Error saving teacher:', error);
+      console.log('📝 Falling back to local state...');
+      
+      // Show detailed error to user
+      alert(`Failed to save to database: ${error}. Data will be saved locally for demo purposes.`);
+      
       // For demo purposes, fall back to local state if Appwrite fails
       if (editingTeacher) {
         setTeachers(teachers.map(teacher => 
