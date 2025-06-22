@@ -56,9 +56,11 @@ export default function Dashboard() {
   // Fetch dashboard data from database
   useEffect(() => {
     const loadData = async () => {
+      console.log('Appwrite Endpoint:', process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT);
       try {
         setDashboardData(prev => ({ ...prev, loading: true }));
 
+        
         // Fetch all collections
         const [teachersRes, studentsRes, feedbacksRes, responsesRes] = await Promise.all([
           dbHelpers.getAll(COLLECTIONS.TEACHERS).catch(() => ({ documents: [] })),
