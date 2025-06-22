@@ -1,4 +1,5 @@
-// Types for database entiexport interface Subject {
+// Types for database entities
+export interface Subject {
   $id?: string;
   $createdAt?: string;
   $updatedAt?: string;
