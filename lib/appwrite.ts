@@ -6,13 +6,28 @@ if (typeof window !== 'undefined') {
   console.log('- Endpoint:', process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT);
   console.log('- Project ID:', process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID);
   console.log('- Database ID:', process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID);
+  
+  // Check if required environment variables are set
+  const requiredVars = [
+    'NEXT_PUBLIC_APPWRITE_ENDPOINT',
+    'NEXT_PUBLIC_APPWRITE_PROJECT_ID', 
+    'NEXT_PUBLIC_APPWRITE_DATABASE_ID'
+  ];
+  
+  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  if (missingVars.length > 0) {
+    console.warn('⚠️ Missing environment variables:', missingVars);
+    console.warn('Please check your .env.local file');
+  } else {
+    console.log('✅ All required environment variables are set');
+  }
 }
 
 const client = new Client();
 
 client
   .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '');
+  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '68567c270022407815f0');
 
 export const databases = new Databases(client);
 export const account = new Account(client);
@@ -25,6 +40,7 @@ export const COLLECTIONS = {
   SUBJECTS: process.env.NEXT_PUBLIC_APPWRITE_SUBJECTS_COLLECTION_ID || 'subjects',
   CLASSES: process.env.NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID || 'classes',
   DEPARTMENTS: process.env.NEXT_PUBLIC_APPWRITE_DEPARTMENTS_COLLECTION_ID || 'departments',
+  HOUSES: process.env.NEXT_PUBLIC_APPWRITE_HOUSES_COLLECTION_ID || 'houses',
   QUESTIONS: process.env.NEXT_PUBLIC_APPWRITE_QUESTIONS_COLLECTION_ID || 'questions',
   FEEDBACKS: process.env.NEXT_PUBLIC_APPWRITE_FEEDBACKS_COLLECTION_ID || 'feedbacks',
   RESPONSES: process.env.NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID || 'responses',
@@ -40,8 +56,12 @@ export const dbHelpers = {
       const result = await databases.createDocument(DATABASE_ID, collectionId, ID.unique(), data);
       console.log('✅ Document created successfully:', result);
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
+      const appwriteError = error as { code?: number; message?: string };
       console.error(`❌ Error creating document in collection ${collectionId}:`, error);
+      if (appwriteError?.code === 404) {
+        console.error('💡 Database or collection not found. Please ensure Appwrite is properly configured.');
+      }
       throw error;
     }
   },
@@ -52,8 +72,12 @@ export const dbHelpers = {
       const result = await databases.listDocuments(DATABASE_ID, collectionId, queries);
       console.log(`✅ Found ${result.documents.length} documents`);
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
+      const appwriteError = error as { code?: number; message?: string };
       console.error(`❌ Error fetching documents from collection ${collectionId}:`, error);
+      if (appwriteError?.code === 404) {
+        console.error('💡 Database or collection not found. Please ensure Appwrite is properly configured.');
+      }
       throw error;
     }
   },

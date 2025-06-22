@@ -1,4 +1,12 @@
-// Types for database entities
+// Types for database entiexport interface Subject {
+  $id?: string;
+  $createdAt?: string;
+  $updatedAt?: string;
+  name: string;
+  code: string;
+  department: string;
+}
+
 export interface Teacher {
   $id?: string;
   $createdAt?: string;
@@ -31,7 +39,7 @@ export interface Subject {
   name: string;
   code: string;
   department: string;
-  credits: number;
+//   credits: number;
 }
 
 export interface Class {
@@ -40,8 +48,16 @@ export interface Class {
   $updatedAt?: string;
   name: string;
   grade: string;
-  section: string;
   capacity: number;
+}
+
+export interface House {
+  $id?: string;
+  $createdAt?: string;
+  $updatedAt?: string;
+  name: string;
+  color: string;
+  description: string;
 }
 
 export interface Department {

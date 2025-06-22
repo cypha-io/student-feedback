@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Teacher, Department, Class as ClassType } from '@/types/database';
+import { Teacher, Department, Class as ClassType, Subject } from '@/types/database';
 import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
 
 export default function ManageTeachers() {
@@ -10,6 +10,7 @@ export default function ManageTeachers() {
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
+  const [subjects, setSubjects] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [formData, setFormData] = useState<Omit<Teacher, '$id' | '$createdAt' | '$updatedAt'>>({
@@ -27,6 +28,7 @@ export default function ManageTeachers() {
     fetchTeachers();
     fetchDepartments();
     fetchClasses();
+    fetchSubjects();
   }, []);
 
   const fetchTeachers = async () => {
@@ -41,7 +43,7 @@ export default function ManageTeachers() {
     } catch (error) {
       console.error('❌ Error fetching teachers:', error);
       console.log('📝 Using empty array as fallback');
-      // For demo purposes if Appwrite is not configured, use empty array
+      // Empty array if Appwrite is not configured
       setTeachers([]);
     } finally {
       setLoading(false);
@@ -57,8 +59,22 @@ export default function ManageTeachers() {
       console.log('✅ Loaded departments:', deptNames);
     } catch (error) {
       console.error('❌ Error fetching departments:', error);
-      // Fallback to default options
-      setDepartments(['Mathematics', 'Science', 'English', 'History', 'Computer Science', 'Art']);
+      // Empty fallback - departments must be added through admin interface
+      setDepartments([]);
+    }
+  };
+
+  const fetchSubjects = async () => {
+    try {
+      console.log('🔍 Fetching subjects from database...');
+      const response = await dbHelpers.getAll(COLLECTIONS.SUBJECTS);
+      const subjectNames = (response.documents as unknown as Subject[]).map(subject => subject.name);
+      setSubjects(subjectNames);
+      console.log('✅ Loaded subjects:', subjectNames);
+    } catch (error) {
+      console.error('❌ Error fetching subjects:', error);
+      // Empty fallback - subjects must be added through admin interface
+      setSubjects([]);
     }
   };
 
@@ -71,8 +87,8 @@ export default function ManageTeachers() {
       console.log('✅ Loaded classes:', classNames);
     } catch (error) {
       console.error('❌ Error fetching classes:', error);
-      // Fallback to default options
-      setClasses(['9th Grade', '10th Grade', '11th Grade', '12th Grade']);
+      // Empty fallback - classes must be added through admin interface
+      setClasses([]);
     }
   };
 
@@ -181,8 +197,6 @@ export default function ManageTeachers() {
         : [...prev.subjects, subject]
     }));
   };
-
-  const availableSubjects = ['Mathematics', 'Algebra', 'Geometry', 'Physics', 'Chemistry', 'Biology', 'English', 'Literature', 'History', 'Geography', 'Computer Science', 'Art', 'Music', 'Physical Education'];
 
   return (
     <DashboardLayout>
@@ -369,9 +383,13 @@ export default function ManageTeachers() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     >
                       <option value="">Select Department</option>
-                      {departments.map(dept => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
+                      {departments.length === 0 ? (
+                        <option disabled>No departments available - Add in Settings</option>
+                      ) : (
+                        departments.map(dept => (
+                          <option key={dept} value={dept}>{dept}</option>
+                        ))
+                      )}
                     </select>
                   </div>
                   
@@ -387,9 +405,13 @@ export default function ManageTeachers() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     >
                       <option value="">Select Class</option>
-                      {classes.map(cls => (
-                        <option key={cls} value={cls}>{cls}</option>
-                      ))}
+                      {classes.length === 0 ? (
+                        <option disabled>No classes available - Add in Settings</option>
+                      ) : (
+                        classes.map(cls => (
+                          <option key={cls} value={cls}>{cls}</option>
+                        ))
+                      )}
                     </select>
                   </div>
                   
@@ -426,22 +448,30 @@ export default function ManageTeachers() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Subjects (Select multiple)
                   </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3">
-                    {availableSubjects.map(subject => (
-                      <label key={subject} htmlFor={`subject-${subject}`} className="flex items-center space-x-2">
-                        <input
-                          id={`subject-${subject}`}
-                          type="checkbox"
-                          checked={formData.subjects.includes(subject)}
-                          onChange={() => handleSubjectChange(subject)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          aria-label={`Select ${subject} subject`}
-                          title={`Select ${subject} subject`}
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">{subject}</span>
-                      </label>
-                    ))}
-                  </div>
+                  {subjects.length === 0 ? (
+                    <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                        No subjects available. Please add subjects in Settings → Subjects first.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3">
+                      {subjects.map(subject => (
+                        <label key={subject} htmlFor={`subject-${subject}`} className="flex items-center space-x-2">
+                          <input
+                            id={`subject-${subject}`}
+                            type="checkbox"
+                            checked={formData.subjects.includes(subject)}
+                            onChange={() => handleSubjectChange(subject)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            aria-label={`Select ${subject} subject`}
+                            title={`Select ${subject} subject`}
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{subject}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex justify-end space-x-3 pt-4">

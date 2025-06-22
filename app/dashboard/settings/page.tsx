@@ -6,12 +6,19 @@ import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
 import { Subject as SubjectType, Class as ClassType, Department as DepartmentType } from '@/types/database';
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState<'subjects' | 'classes' | 'departments' | 'general'>('general');
+  const [activeTab, setActiveTab] = useState<'subjects' | 'classes' | 'departments' | 'houses' | 'general'>('general');
   
   // State for data
   const [subjects, setSubjects] = useState<SubjectType[]>([]);
   const [classes, setClasses] = useState<ClassType[]>([]);
   const [departments, setDepartments] = useState<DepartmentType[]>([]);
+
+  // Website settings state
+  const [websiteSettings, setWebsiteSettings] = useState({
+    siteName: 'EduFeedback System',
+    siteTitle: 'Student Feedback Portal',
+    academicYear: '2024-2025'
+  });
   const [loading, setLoading] = useState(false);
 
   // Modal states
@@ -23,13 +30,11 @@ export default function Settings() {
   const [subjectForm, setSubjectForm] = useState<Omit<SubjectType, '$id' | '$createdAt' | '$updatedAt'>>({ 
     name: '', 
     code: '', 
-    department: '', 
-    credits: 0 
+    department: '' 
   });
   const [classForm, setClassForm] = useState<Omit<ClassType, '$id' | '$createdAt' | '$updatedAt'>>({ 
     name: '', 
     grade: '', 
-    section: '', 
     capacity: 0 
   });
   const [departmentForm, setDepartmentForm] = useState<Omit<DepartmentType, '$id' | '$createdAt' | '$updatedAt'>>({ 
@@ -50,6 +55,12 @@ export default function Settings() {
     } else if (activeTab === 'departments') {
       fetchDepartments();
     }
+    
+    // Load website settings from localStorage
+    const savedSettings = localStorage.getItem('websiteSettings');
+    if (savedSettings) {
+      setWebsiteSettings(JSON.parse(savedSettings));
+    }
   }, [activeTab]);
 
   const fetchSubjects = async () => {
@@ -59,11 +70,8 @@ export default function Settings() {
       setSubjects(response.documents as unknown as SubjectType[]);
     } catch (error) {
       console.error('Error fetching subjects:', error);
-      // Use mock data if Appwrite is not configured
-      setSubjects([
-        { $id: '1', name: 'Mathematics', code: 'MATH101', department: 'Mathematics', credits: 3 },
-        { $id: '2', name: 'Physics', code: 'PHY101', department: 'Science', credits: 4 },
-      ]);
+      // Empty array if Appwrite is not configured
+      setSubjects([]);
     } finally {
       setLoading(false);
     }
@@ -76,11 +84,8 @@ export default function Settings() {
       setClasses(response.documents as unknown as ClassType[]);
     } catch (error) {
       console.error('Error fetching classes:', error);
-      // Use mock data if Appwrite is not configured
-      setClasses([
-        { $id: '1', name: '9th Grade A', grade: '9th', section: 'A', capacity: 30 },
-        { $id: '2', name: '10th Grade B', grade: '10th', section: 'B', capacity: 28 },
-      ]);
+      // Empty array if Appwrite is not configured
+      setClasses([]);
     } finally {
       setLoading(false);
     }
@@ -93,11 +98,8 @@ export default function Settings() {
       setDepartments(response.documents as unknown as DepartmentType[]);
     } catch (error) {
       console.error('Error fetching departments:', error);
-      // Use mock data if Appwrite is not configured
-      setDepartments([
-        { $id: '1', name: 'Mathematics', code: 'MATH', head: 'Dr. John Smith', description: 'Mathematics Department' },
-        { $id: '2', name: 'Science', code: 'SCI', head: 'Dr. Sarah Johnson', description: 'Science Department' },
-      ]);
+      // Empty array if Appwrite is not configured
+      setDepartments([]);
     } finally {
       setLoading(false);
     }
@@ -108,20 +110,32 @@ export default function Settings() {
     { id: 'subjects', name: 'Subjects', icon: '📚' },
     { id: 'classes', name: 'Classes', icon: '🏫' },
     { id: 'departments', name: 'Departments', icon: '🏢' },
+    { id: 'houses', name: 'Houses', icon: '🏠' },
   ];
 
   const handleAddSubject = async () => {
     try {
+      // Validate required fields
+      if (!subjectForm.name || !subjectForm.code || !subjectForm.department) {
+        alert('Please fill in all required fields (Name, Code, Department)');
+        return;
+      }
+      
+      console.log('🚀 Attempting to save subject:', subjectForm);
       if (editingId) {
         await dbHelpers.update(COLLECTIONS.SUBJECTS, editingId, subjectForm);
         setSubjects(subjects.map(s => s.$id === editingId ? { ...s, ...subjectForm } : s));
+        console.log('✅ Subject updated successfully');
       } else {
         const newSubject = await dbHelpers.create(COLLECTIONS.SUBJECTS, subjectForm);
+        console.log('✅ Subject created successfully:', newSubject);
         setSubjects([...subjects, newSubject as unknown as SubjectType]);
       }
       resetSubjectForm();
+      alert('Subject saved successfully!');
     } catch (error) {
-      console.error('Error saving subject:', error);
+      console.error('❌ Error saving subject:', error);
+      alert(`Error saving subject: ${error}. Please check your database configuration.`);
       // For demo purposes, add to local state if Appwrite fails
       if (editingId) {
         setSubjects(subjects.map(s => s.$id === editingId ? { ...s, ...subjectForm } : s));
@@ -135,16 +149,27 @@ export default function Settings() {
 
   const handleAddClass = async () => {
     try {
+      // Validate required fields
+      if (!classForm.name || !classForm.grade) {
+        alert('Please fill in all required fields (Name, Year)');
+        return;
+      }
+      
+      console.log('🚀 Attempting to save class:', classForm);
       if (editingId) {
         await dbHelpers.update(COLLECTIONS.CLASSES, editingId, classForm);
         setClasses(classes.map(c => c.$id === editingId ? { ...c, ...classForm } : c));
+        console.log('✅ Class updated successfully');
       } else {
         const newClass = await dbHelpers.create(COLLECTIONS.CLASSES, classForm);
+        console.log('✅ Class created successfully:', newClass);
         setClasses([...classes, newClass as unknown as ClassType]);
       }
       resetClassForm();
+      alert('Class saved successfully!');
     } catch (error) {
-      console.error('Error saving class:', error);
+      console.error('❌ Error saving class:', error);
+      alert(`Error saving class: ${error}. Please check your database configuration.`);
       // For demo purposes, add to local state if Appwrite fails
       if (editingId) {
         setClasses(classes.map(c => c.$id === editingId ? { ...c, ...classForm } : c));
@@ -180,13 +205,13 @@ export default function Settings() {
   };
 
   const resetSubjectForm = () => {
-    setSubjectForm({ name: '', code: '', department: '', credits: 0 });
+    setSubjectForm({ name: '', code: '', department: '' });
     setShowSubjectModal(false);
     setEditingId(null);
   };
 
   const resetClassForm = () => {
-    setClassForm({ name: '', grade: '', section: '', capacity: 0 });
+    setClassForm({ name: '', grade: '', capacity: 0 });
     setShowClassModal(false);
     setEditingId(null);
   };
@@ -197,15 +222,27 @@ export default function Settings() {
     setEditingId(null);
   };
 
+  const handleSaveWebsiteSettings = async () => {
+    try {
+      // In a real app, you would save this to a settings collection
+      // For now, we'll store in localStorage as demo
+      localStorage.setItem('websiteSettings', JSON.stringify(websiteSettings));
+      alert('Website settings saved successfully!');
+    } catch (error) {
+      console.error('Error saving website settings:', error);
+      alert('Error saving settings. Please try again.');
+    }
+  };
+
   const handleEdit = (type: 'subject' | 'class' | 'department', item: SubjectType | ClassType | DepartmentType) => {
     setEditingId(item.$id!);
     if (type === 'subject') {
       const subject = item as SubjectType;
-      setSubjectForm({ name: subject.name, code: subject.code, department: subject.department, credits: subject.credits });
+      setSubjectForm({ name: subject.name, code: subject.code, department: subject.department });
       setShowSubjectModal(true);
     } else if (type === 'class') {
       const cls = item as ClassType;
-      setClassForm({ name: cls.name, grade: cls.grade, section: cls.section, capacity: cls.capacity });
+      setClassForm({ name: cls.name, grade: cls.grade, capacity: cls.capacity });
       setShowClassModal(true);
     } else if (type === 'department') {
       const dept = item as DepartmentType;
@@ -282,18 +319,33 @@ export default function Settings() {
                 {/* System Settings */}
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    System Settings
+                    Website Settings
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="system-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        System Name
+                      <label htmlFor="website-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Website Name
                       </label>
                       <input
-                        id="system-name"
+                        id="website-name"
                         type="text"
-                        defaultValue="EduFeedback System"
+                        value={websiteSettings.siteName}
+                        onChange={(e) => setWebsiteSettings({...websiteSettings, siteName: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        placeholder="Enter website name"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="website-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Website Title
+                      </label>
+                      <input
+                        id="website-title"
+                        type="text"
+                        value={websiteSettings.siteTitle}
+                        onChange={(e) => setWebsiteSettings({...websiteSettings, siteTitle: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        placeholder="Enter website title"
                       />
                     </div>
                     <div>
@@ -302,13 +354,21 @@ export default function Settings() {
                       </label>
                       <select 
                         id="academic-year"
+                        value={websiteSettings.academicYear}
+                        onChange={(e) => setWebsiteSettings({...websiteSettings, academicYear: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                        aria-label="Select academic year"
                       >
-                        <option>2024-2025</option>
-                        <option>2023-2024</option>
+                        <option value="2024-2025">2024-2025</option>
+                        <option value="2023-2024">2023-2024</option>
+                        <option value="2025-2026">2025-2026</option>
                       </select>
                     </div>
+                    <button
+                      onClick={handleSaveWebsiteSettings}
+                      className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                    >
+                      Save Settings
+                    </button>
                   </div>
                 </div>
 
@@ -375,9 +435,6 @@ export default function Settings() {
                           Department
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Credits
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           Actions
                         </th>
                       </tr>
@@ -406,9 +463,6 @@ export default function Settings() {
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               {subject.department}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                              {subject.credits}
                             </td>
                             <td className="px-6 py-4 text-sm space-x-2">
                               <button
@@ -458,10 +512,7 @@ export default function Settings() {
                           Class Name
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Grade
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Section
+                          Year
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           Capacity
@@ -492,9 +543,6 @@ export default function Settings() {
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               {cls.grade}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                              {cls.section}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               {cls.capacity}
@@ -665,19 +713,6 @@ export default function Settings() {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label htmlFor="subject-credits" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Credits
-                  </label>
-                  <input
-                    id="subject-credits"
-                    type="number"
-                    placeholder="Enter credits"
-                    value={subjectForm.credits}
-                    onChange={(e) => setSubjectForm({...subjectForm, credits: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
               </div>
               <div className="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
                 <button
@@ -722,7 +757,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <label htmlFor="class-grade" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Grade
+                    Year
                   </label>
                   <select
                     id="class-grade"
@@ -730,37 +765,10 @@ export default function Settings() {
                     onChange={(e) => setClassForm({...classForm, grade: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="">Select Grade</option>
-                    <option value="1st">1st Grade</option>
-                    <option value="2nd">2nd Grade</option>
-                    <option value="3rd">3rd Grade</option>
-                    <option value="4th">4th Grade</option>
-                    <option value="5th">5th Grade</option>
-                    <option value="6th">6th Grade</option>
-                    <option value="7th">7th Grade</option>
-                    <option value="8th">8th Grade</option>
-                    <option value="9th">9th Grade</option>
-                    <option value="10th">10th Grade</option>
-                    <option value="11th">11th Grade</option>
-                    <option value="12th">12th Grade</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="class-section" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Section
-                  </label>
-                  <select
-                    id="class-section"
-                    value={classForm.section}
-                    onChange={(e) => setClassForm({...classForm, section: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="">Select Section</option>
-                    <option value="A">Section A</option>
-                    <option value="B">Section B</option>
-                    <option value="C">Section C</option>
-                    <option value="D">Section D</option>
-                    <option value="E">Section E</option>
+                    <option value="">Select Year</option>
+                    <option value="Year 1">Year 1</option>
+                    <option value="Year 2">Year 2</option>
+                    <option value="Year 3">Year 3</option>
                   </select>
                 </div>
                 <div>
