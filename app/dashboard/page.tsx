@@ -56,11 +56,8 @@ export default function Dashboard() {
   // Fetch dashboard data from database
   useEffect(() => {
     const loadData = async () => {
-      console.log('Appwrite Endpoint:', process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT);
       try {
         setDashboardData(prev => ({ ...prev, loading: true }));
-
-        
         // Fetch all collections
         const [teachersRes, studentsRes, feedbacksRes, responsesRes] = await Promise.all([
           dbHelpers.getAll(COLLECTIONS.TEACHERS).catch(() => ({ documents: [] })),
@@ -68,7 +65,6 @@ export default function Dashboard() {
           dbHelpers.getAll(COLLECTIONS.FEEDBACKS).catch(() => ({ documents: [] })),
           dbHelpers.getAll(COLLECTIONS.RESPONSES).catch(() => ({ documents: [] }))
         ]);
-
         const teachers = teachersRes.documents as Teacher[];
         const students = studentsRes.documents as Student[];
         const feedbacks = feedbacksRes.documents as Feedback[];
@@ -86,12 +82,83 @@ export default function Dashboard() {
           : 0;
 
         // Generate chart data
-        const monthlyData = generateMonthlyData(feedbacks);
-        const ratingDist = generateRatingDistribution(responses);
-        const weeklyRatings = generateWeeklyRatings(responses);
+        const monthlyData = (() => {
+          const monthly = new Array(6).fill(0);
+          const now = new Date();
+          feedbacks.forEach(feedback => {
+            if (feedback.$createdAt) {
+              const feedbackDate = new Date(feedback.$createdAt);
+              const monthDiff = now.getMonth() - feedbackDate.getMonth() + 12 * (now.getFullYear() - feedbackDate.getFullYear());
+              if (monthDiff >= 0 && monthDiff < 6) {
+                monthly[5 - monthDiff]++;
+              }
+            }
+          });
+          return monthly;
+        })();
+        const ratingDist = (() => {
+          const dist = [0, 0, 0, 0];
+          responses.forEach(response => {
+            if (response.type === 'rating' && typeof response.answer === 'number') {
+              const rating = response.answer as number;
+              if (rating <= 2) dist[0]++;
+              else if (rating <= 3) dist[1]++;
+              else if (rating <= 4) dist[2]++;
+              else dist[3]++;
+            }
+          });
+          return dist;
+        })();
+        const weeklyRatings = (() => {
+          const weeklyData = new Array(4).fill(0);
+          const weeklyCount = new Array(4).fill(0);
+          const now = new Date();
+          responses.forEach(response => {
+            if (response.$createdAt && response.type === 'rating' && typeof response.answer === 'number') {
+              const responseDate = new Date(response.$createdAt);
+              const daysDiff = Math.floor((now.getTime() - responseDate.getTime()) / (1000 * 60 * 60 * 24));
+              const weekIndex = Math.floor(daysDiff / 7);
+              if (weekIndex >= 0 && weekIndex < 4) {
+                weeklyData[3 - weekIndex] += response.answer as number;
+                weeklyCount[3 - weekIndex]++;
+              }
+            }
+          });
+          return weeklyData.map((sum, i) => weeklyCount[i] > 0 ? sum / weeklyCount[i] : 0);
+        })();
 
         // Generate recent activities
-        const activities = generateRecentActivities(teachers, students, feedbacks);
+        const activities = (() => {
+          const acts: Array<{ action: string; time: string; type: string; user: string; status: string; }> = [];
+          // Recent feedbacks
+          const recentFeedbacks = feedbacks
+            .sort((a, b) => new Date(b.$createdAt || '').getTime() - new Date(a.$createdAt || '').getTime())
+            .slice(0, 2);
+          recentFeedbacks.forEach(feedback => {
+            const teacher = teachers.find(t => t.$id === feedback.teacherId);
+            acts.push({
+              action: `New feedback submitted for ${teacher?.name || 'Teacher'}`,
+              time: getTimeAgo(feedback.$createdAt),
+              type: 'feedback',
+              user: `Student feedback`,
+              status: 'completed'
+            });
+          });
+          // Recent teachers
+          const recentTeachers = teachers
+            .sort((a, b) => new Date(b.$createdAt || '').getTime() - new Date(a.$createdAt || '').getTime())
+            .slice(0, 1);
+          recentTeachers.forEach(teacher => {
+            acts.push({
+              action: `Teacher ${teacher.name} added to ${teacher.department} department`,
+              time: getTimeAgo(teacher.$createdAt),
+              type: 'teacher',
+              user: 'Admin User',
+              status: 'completed'
+            });
+          });
+          return acts.slice(0, 5);
+        })();
 
         setDashboardData({
           totalTeachers,
@@ -111,37 +178,21 @@ export default function Dashboard() {
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        // Use fallback data if database is not available
         setDashboardData({
-          totalTeachers: 25,
-          totalStudents: 450,
-          totalFeedbacks: 1240,
-          averageRating: 4.2,
+          totalTeachers: 0,
+          totalStudents: 0,
+          totalFeedbacks: 0,
+          averageRating: 0,
           loading: false
         });
 
         setChartData({
-          monthlySubmissions: [65, 85, 120, 95, 140, 160],
-          ratingDistribution: [5, 15, 35, 45],
-          weeklyRatings: [3.8, 4.1, 4.3, 4.2]
+          monthlySubmissions: [0, 0, 0, 0, 0, 0],
+          ratingDistribution: [0, 0, 0, 0],
+          weeklyRatings: [0, 0, 0, 0]
         });
 
-        setRecentActivities([
-          { 
-            action: 'New feedback submitted for Dr. Smith', 
-            time: '2 minutes ago', 
-            type: 'feedback',
-            user: 'Student ID: 2024001',
-            status: 'completed'
-          },
-          { 
-            action: 'Teacher John Doe added to Mathematics department', 
-            time: '1 hour ago', 
-            type: 'teacher',
-            user: 'Admin User',
-            status: 'completed'
-          }
-        ]);
+        setRecentActivities([]);
       }
     };
 
@@ -149,38 +200,7 @@ export default function Dashboard() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper functions to generate chart data
-  const generateMonthlyData = (feedbacks: Feedback[]) => {
-    const monthlyData = new Array(6).fill(0);
-    const currentDate = new Date();
-    
-    feedbacks.forEach(feedback => {
-      if (feedback.$createdAt) {
-        const feedbackDate = new Date(feedback.$createdAt);
-        const monthDiff = currentDate.getMonth() - feedbackDate.getMonth();
-        if (monthDiff >= 0 && monthDiff < 6) {
-          monthlyData[5 - monthDiff]++;
-        }
-      }
-    });
-    
-    return monthlyData.length > 0 ? monthlyData : [65, 85, 120, 95, 140, 160];
-  };
 
-  const generateRatingDistribution = (responses: Response[]) => {
-    const distribution = [0, 0, 0, 0]; // Poor, Average, Good, Excellent
-    
-    responses.forEach(response => {
-      if (response.type === 'rating' && typeof response.answer === 'number') {
-        const rating = response.answer as number;
-        if (rating <= 2) distribution[0]++;
-        else if (rating <= 3) distribution[1]++;
-        else if (rating <= 4) distribution[2]++;
-        else distribution[3]++;
-      }
-    });
-    
-    return distribution.some(d => d > 0) ? distribution : [5, 15, 35, 45];
-  };
 
   const generateWeeklyRatings = (responses: Response[]) => {
     const weeklyData = new Array(4).fill(0);

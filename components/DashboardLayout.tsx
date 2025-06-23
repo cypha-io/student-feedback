@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { account } from '@/lib/appwrite';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -61,6 +62,19 @@ const navigation = [
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check if user is logged in
+    account.get().catch(() => {
+      router.replace('/'); // redirect to homepage login if not authenticated
+    });
+  }, [router]);
+
+  const handleLogout = async () => {
+    await account.deleteSession('current');
+    router.replace('/');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950">
