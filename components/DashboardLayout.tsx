@@ -71,11 +71,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     });
   }, [router]);
 
-  const handleLogout = async () => {
-    await account.deleteSession('current');
-    router.replace('/');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950">
       {/* Mobile sidebar backdrop */}

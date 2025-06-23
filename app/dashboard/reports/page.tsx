@@ -198,7 +198,6 @@ export default function Reports() {
 
       // Fetch top teachers and recent feedbacks
       const allFeedbacks = await dbHelpers.getAll(COLLECTIONS.FEEDBACKS);
-      const allResponses = await dbHelpers.getAll(COLLECTIONS.RESPONSES);
 
       // Top Teachers: Calculate average rating and feedback count from feedbacks
       const teacherRatings: Record<string, { totalRating: number; count: number }> = {};
@@ -271,7 +270,7 @@ export default function Reports() {
     return d;
   });
   const trendLabels = months.map(m => m.toLocaleString('default', { month: 'short' }));
-  const monthlyAverages: number[] = months.map((month, idx) => {
+  const monthlyAverages: number[] = months.map((month) => {
     const monthFeedbacks = feedbacks.filter(f => {
       const d = new Date(f.$createdAt || '');
       return d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth();
@@ -280,7 +279,7 @@ export default function Reports() {
     const sum = monthFeedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
     return Math.round((sum / monthFeedbacks.length) * 10) / 10;
   });
-  const monthlyResponseRates: number[] = months.map((month, idx) => {
+  const monthlyResponseRates: number[] = months.map((month) => {
     const monthFeedbacks = feedbacks.filter(f => {
       const d = new Date(f.$createdAt || '');
       return d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth();

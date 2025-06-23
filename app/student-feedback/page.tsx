@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
 import { Teacher, Question, Subject } from '@/types/database';
-import Link from 'next/link';
 
 export default function StudentFeedback() {
   const [step, setStep] = useState(1);

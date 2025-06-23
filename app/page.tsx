@@ -5,10 +5,6 @@ import { account } from '@/lib/appwrite';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [siteName, setSiteName] = useState('EduFeedback System');
   const [testResult, setTestResult] = useState<string | null>(null);
   const router = useRouter();
@@ -27,20 +23,6 @@ export default function Home() {
       }
     }
   }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      await account.createEmailSession(email, password);
-      router.push('/dashboard');
-    } catch (error) {
-      setError('Invalid email or password');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Test DB communication (fetch users from Appwrite Auth via API route)
   const handleTestUser = async () => {
