@@ -110,7 +110,7 @@ export default function Reports() {
   // Add state for feedbacks and responses
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [responses, setResponses] = useState<Response[]>([]);
-  const [allTeachers, setAllTeachers] = useState<any[]>([]);
+  const [allTeachers, setAllTeachers] = useState<unknown[]>([]);
 
   // Load data on component mount
   useEffect(() => {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { account } from '@/lib/appwrite';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
@@ -35,8 +34,8 @@ export default function Home() {
       } else {
         setTestResult('Cannot communicate with Appwrite Auth.');
       }
-    } catch (err) {
-      setTestResult('Cannot communicate with Appwrite Auth.');
+    } catch {
+      setTestResult('Cannot communicate with Appwrite DB.');
     }
   };
 
