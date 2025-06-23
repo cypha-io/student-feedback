@@ -93,6 +93,7 @@ export interface Feedback {
   classId: string;
   status: 'pending' | 'completed' | 'draft';
   submittedAt?: string;
+  rating?: number;
 }
 
 export interface Response {
