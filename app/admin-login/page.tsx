@@ -16,9 +16,9 @@ export default function AdminLogin() {
     setLoading(true);
     setError('');
     try {
-      await account.createEmailSession(email, password);
+      await account.createSession(email, password);
       router.push('/dashboard');
-    } catch (err) {
+    } catch {
       setError('Invalid email or password');
     } finally {
       setLoading(false);
