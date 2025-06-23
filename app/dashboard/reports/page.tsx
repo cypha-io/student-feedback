@@ -648,7 +648,7 @@ export default function Reports() {
           <div className="space-y-4">
             {allTeachers.length === 0 ? (
               <div className="text-gray-500 text-sm">No teachers found.</div>
-            ) : allTeachers.map((teacher, index) => (
+            ) : allTeachers.map((teacher) => (
               <Fragment key={teacher.$id}>
                 <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
                   <div>
