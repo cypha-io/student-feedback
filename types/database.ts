@@ -104,6 +104,7 @@ export interface Response {
   questionId: string;
   answer: string | number;
   type: 'rating' | 'text' | 'multiple_choice';
+  teacherId?: string;
 }
 
 export interface DatabaseDocument {
