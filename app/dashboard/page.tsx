@@ -197,7 +197,7 @@ export default function Dashboard() {
     };
 
     loadData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Helper functions to generate chart data
 
