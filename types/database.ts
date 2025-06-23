@@ -94,6 +94,7 @@ export interface Feedback {
   status: 'pending' | 'completed' | 'draft';
   submittedAt?: string;
   rating?: number;
+  comment?: string;
 }
 
 export interface Response {

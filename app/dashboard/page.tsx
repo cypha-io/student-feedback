@@ -1,34 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bar, Pie, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement,
-} from 'chart.js';
 import DashboardLayout from '@/components/DashboardLayout';
 import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
 import { Teacher, Student, Feedback, Response } from '@/types/database';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement
-);
+import { Chart } from 'react-google-charts';
 
 export default function Dashboard() {
   // State for dashboard data
@@ -216,54 +192,19 @@ export default function Dashboard() {
     return `${diffInDays} days ago`;
   };
 
-  // Chart configurations using dynamic data
-  const barChartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        label: 'Feedback Submissions',
-        data: chartData.monthlySubmissions,
-        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-        borderColor: 'rgb(59, 130, 246)',
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  const pieChartData = {
-    labels: ['Poor', 'Average', 'Good', 'Excellent'],
-    datasets: [
-      {
-        data: chartData.ratingDistribution,
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.8)',
-          'rgba(251, 191, 36, 0.8)',
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(34, 197, 94, 0.8)',
-        ],
-        borderColor: [
-          'rgb(239, 68, 68)',
-          'rgb(251, 191, 36)',
-          'rgb(59, 130, 246)',
-          'rgb(34, 197, 94)',
-        ],
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  const lineChartData = {
-    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-    datasets: [
-      {
-        label: 'Average Rating',
-        data: chartData.weeklyRatings,
-        borderColor: 'rgb(168, 85, 247)',
-        backgroundColor: 'rgba(168, 85, 247, 0.1)',
-        tension: 0.1,
-      },
-    ],
-  };
+  // Prepare Google Charts data
+  const barChartData = [
+    ['Month', 'Feedback Submissions'],
+    ...['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, i) => [month, chartData.monthlySubmissions[i] || 0])
+  ];
+  const pieChartData = [
+    ['Rating', 'Count'],
+    ...['Poor', 'Average', 'Good', 'Excellent'].map((label, i) => [label, chartData.ratingDistribution[i] || 0])
+  ];
+  const lineChartData = [
+    ['Week', 'Average Rating'],
+    ...['Week 1', 'Week 2', 'Week 3', 'Week 4'].map((week, i) => [week, chartData.weeklyRatings[i] || 0])
+  ];
 
   const chartOptions = {
     responsive: true,
@@ -449,7 +390,13 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="h-80">
-              <Bar data={barChartData} options={{...chartOptions, maintainAspectRatio: false}} />
+              <Chart
+                chartType="ColumnChart"
+                width="100%"
+                height="320px"
+                data={barChartData}
+                options={{ ...chartOptions, legend: { position: 'top' } }}
+              />
             </div>
           </div>
 
@@ -465,7 +412,13 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="h-80">
-              <Pie data={pieChartData} options={{maintainAspectRatio: false}} />
+              <Chart
+                chartType="PieChart"
+                width="100%"
+                height="320px"
+                data={pieChartData}
+                options={{ ...chartOptions, legend: { position: 'top' } }}
+              />
             </div>
           </div>
         </div>
@@ -489,7 +442,13 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="h-80">
-            <Line data={lineChartData} options={{...chartOptions, maintainAspectRatio: false}} />
+            <Chart
+              chartType="LineChart"
+              width="100%"
+              height="320px"
+              data={lineChartData}
+              options={{ ...chartOptions, legend: { position: 'top' } }}
+            />
           </div>
         </div>
 

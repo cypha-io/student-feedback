@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { Chart } from 'react-google-charts';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -16,7 +16,7 @@ import {
 } from 'chart.js';
 import DashboardLayout from '@/components/DashboardLayout';
 import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
-import { Feedback, Response, Subject, Department } from '@/types/database';
+import { Feedback, Response, Subject, Department, Teacher } from '@/types/database';
 
 ChartJS.register(
   CategoryScale,
@@ -110,13 +110,13 @@ export default function Reports() {
   // Add state for feedbacks and responses
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [responses, setResponses] = useState<Response[]>([]);
-  const [allTeachers, setAllTeachers] = useState<unknown[]>([]);
+  const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
 
   // Load data on component mount
   useEffect(() => {
     loadReportsData();
     // Fetch all teachers for the all-teachers section
-    dbHelpers.getAll(COLLECTIONS.TEACHERS).then(res => setAllTeachers(res.documents || []));
+    dbHelpers.getAll(COLLECTIONS.TEACHERS).then(res => setAllTeachers(res.documents as unknown as Teacher[] || []));
   }, [selectedPeriod, selectedDepartment]);
 
   const loadReportsData = async () => {
@@ -311,33 +311,20 @@ export default function Reports() {
     ],
   };
 
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-    },
-    scales: {
-      y: {
-        type: 'linear' as const,
-        display: true,
-        position: 'left' as const,
-        beginAtZero: true,
-        max: 5,
-      },
-      y1: {
-        type: 'linear' as const,
-        display: true,
-        position: 'right' as const,
-        beginAtZero: true,
-        max: 100,
-        grid: {
-          drawOnChartArea: false,
-        },
-      },
-    },
-  };
+
+  // Prepare Google Charts data
+  const departmentRatingsData = [
+    ['Department', 'Average Rating'],
+    ...departmentRatings.labels.map((label, i) => [label, departmentRatings.datasets[0].data[i] || 0])
+  ];
+  const satisfactionDistributionData = [
+    ['Satisfaction', 'Count'],
+    ...satisfactionDistribution.labels.map((label, i) => [label, satisfactionDistribution.datasets[0].data[i] || 0])
+  ];
+  const trendDataGoogle = [
+    ['Month', 'Average Rating', 'Response Rate %'],
+    ...trendData.labels.map((label, i) => [label, trendData.datasets[0].data[i] || 0, trendData.datasets[1].data[i] || 0])
+  ];
 
   // Helper to get all feedbacks and answers for a teacher
   const getTeacherFeedbacks = (teacherName: string) => {
@@ -514,7 +501,13 @@ export default function Reports() {
               </h3>
             </div>
             <div className="h-80">
-              <Bar data={departmentRatings} options={{...chartOptions, maintainAspectRatio: false}} />
+              <Chart
+                chartType="ColumnChart"
+                width="100%"
+                height="320px"
+                data={departmentRatingsData}
+                options={{ legend: { position: 'top' }, vAxis: { minValue: 0, maxValue: 5 } }}
+              />
             </div>
           </div>
 
@@ -527,7 +520,13 @@ export default function Reports() {
             </div>
             <div className="flex justify-center">
               <div className="w-80 h-80">
-                <Doughnut data={satisfactionDistribution} options={{maintainAspectRatio: false}} />
+                <Chart
+                  chartType="PieChart"
+                  width="100%"
+                  height="320px"
+                  data={satisfactionDistributionData}
+                  options={{ legend: { position: 'top' } }}
+                />
               </div>
             </div>
           </div>
@@ -541,7 +540,13 @@ export default function Reports() {
             </h3>
           </div>
           <div className="h-80">
-            <Line data={trendData} options={{...chartOptions, maintainAspectRatio: false}} />
+            <Chart
+              chartType="LineChart"
+              width="100%"
+              height="320px"
+              data={trendDataGoogle}
+              options={{ legend: { position: 'top' }, vAxis: { minValue: 0, maxValue: 5 }, series: { 1: { targetAxisIndex: 1 } }, hAxis: { title: 'Month' }, }}
+            />
           </div>
         </div>
 
@@ -657,7 +662,7 @@ export default function Reports() {
                   </div>
                   <button
                     className="ml-4 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs"
-                    onClick={() => setExpandedTeacher(expandedTeacher === teacher.$id ? null : teacher.$id)}
+                    onClick={() => setExpandedTeacher(expandedTeacher === teacher.$id ? null : teacher.$id || null)}
                   >
                     {expandedTeacher === teacher.$id ? 'Hide Details' : 'View Details'}
                   </button>
