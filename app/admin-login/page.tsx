@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { account } from '@/lib/appwrite';
+
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com';
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -15,14 +17,13 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    try {
-      await account.createSession(email, password);
+    // Simple env-based check
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       router.push('/dashboard');
-    } catch {
+    } else {
       setError('Invalid email or password');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   return (
