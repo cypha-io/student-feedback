@@ -100,3 +100,50 @@
 .glowEffect {
   animation: glow 2s ease-in-out infinite;
 }
+
+/* Copyright popup animations */
+@keyframes fade-in {
+  from { 
+    opacity: 0; 
+    -webkit-backdrop-filter: blur(0px);
+    backdrop-filter: blur(0px);
+  }
+  to { 
+    opacity: 1; 
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes scale-up {
+  from { 
+    transform: scale(0.8) translateY(20px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: scale(1) translateY(0); 
+    opacity: 1; 
+  }
+}
+
+@keyframes progress-bar {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+/* Global animations for use in JSX */
+:global(.animate-fade-in) {
+  animation: fade-in 0.3s ease-out;
+}
+
+:global(.animate-scale-up) {
+  animation: scale-up 0.4s ease-out;
+}
+
+:global(.animate-progress-bar) {
+  animation: progress-bar 5s linear;
+}
+
+:global(.animate-progress-bar-long) {
+  animation: progress-bar 8s linear;
+}

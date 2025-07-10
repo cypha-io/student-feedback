@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './homepage.module.css';
+import CopyrightPopup from '../components/CopyrightPopup';
 
 export default function Home() {
   const [siteName, setSiteName] = useState('EduFeedback System');
@@ -133,6 +134,9 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Copyright Popup */}
+      <CopyrightPopup />
     </div>
   );
 }

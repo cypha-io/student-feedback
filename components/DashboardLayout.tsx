@@ -3,6 +3,7 @@
 import { useState, ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import CopyrightPopup from './CopyrightPopup';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -240,6 +241,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </main>
       </div>
+
+      {/* Copyright Popup */}
+      <CopyrightPopup />
     </div>
   );
 }

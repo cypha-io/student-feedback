@@ -1,0 +1,20 @@
+/* Progress bar styles for rating visualization */
+.progressBar {
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  height: 0.5rem;
+}
+
+.progressFill {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: #2563eb;
+  transition: width 0.3s ease;
+}
+
+.progressFill20 { width: 20%; }
+.progressFill40 { width: 40%; }
+.progressFill60 { width: 60%; }
+.progressFill80 { width: 80%; }
+.progressFill100 { width: 100%; }

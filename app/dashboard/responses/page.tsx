@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Client, Databases, Query } from 'appwrite';
 import DashboardLayout from '../../../components/DashboardLayout';
+import styles from './responses.module.css';
 
 const client = new Client()
   .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
@@ -30,6 +31,8 @@ export default function StudentResponsesPage() {
   const [filterTeacher, setFilterTeacher] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'teacher'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedResponse, setSelectedResponse] = useState<FeedbackResponse | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     fetchResponses();
@@ -95,6 +98,16 @@ export default function StudentResponsesPage() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleViewDetails = (response: FeedbackResponse) => {
+    setSelectedResponse(response);
+    setShowDetailsModal(true);
+  };
+
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedResponse(null);
   };
 
   if (loading) {
@@ -251,7 +264,10 @@ export default function StudentResponsesPage() {
                           {formatDate(response.$createdAt)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button className="text-blue-600 hover:text-blue-900 transition-colors">
+                          <button 
+                            onClick={() => handleViewDetails(response)}
+                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                          >
                             View Details
                           </button>
                         </td>
@@ -302,6 +318,123 @@ export default function StudentResponsesPage() {
           </div>
         )}
       </div>
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedResponse && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Feedback Details</h2>
+                  <p className="text-gray-600 mt-1">
+                    Submitted on {formatDate(selectedResponse.$createdAt)}
+                  </p>
+                </div>
+                <button
+                  onClick={closeDetailsModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Close modal"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3">Basic Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Teacher:</span>
+                      <span className="ml-2 text-gray-900">{selectedResponse.teacherName}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Student:</span>
+                      <span className="ml-2 text-gray-900">{selectedResponse.studentName || 'Anonymous'}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Overall Score:</span>
+                      <span className="ml-2 text-gray-900 font-semibold">{selectedResponse.overallScore.toFixed(1)}/5.0</span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Performance Grade:</span>
+                      <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${getPerformanceColor(selectedResponse.performanceGrade)}`}>
+                        {selectedResponse.performanceGrade}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section Scores */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3">Section Scores</h3>
+                  <div className="space-y-2">
+                    {selectedResponse.sectionScores && Object.entries(selectedResponse.sectionScores).map(([section, score]) => (
+                      <div key={section} className="flex justify-between">
+                        <span className="text-sm font-medium text-gray-600">Section {section}:</span>
+                        <span className="text-gray-900 font-semibold">{score.toFixed(1)}/5.0</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Individual Responses */}
+              {selectedResponse.responses && Object.keys(selectedResponse.responses).length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3">Individual Question Responses</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(selectedResponse.responses).map(([question, rating]) => (
+                      <div key={question} className="bg-white rounded-lg p-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700">{question}</span>
+                          <div className="flex items-center">
+                            <span className="text-lg font-bold text-blue-600">{rating}</span>
+                            <span className="text-sm text-gray-500 ml-1">/5</span>
+                          </div>
+                        </div>
+                        <div className="mt-2">
+                          <div className={styles.progressBar}>
+                            <div 
+                              className={`${styles.progressFill} ${
+                                rating === 1 ? styles.progressFill20 :
+                                rating === 2 ? styles.progressFill40 :
+                                rating === 3 ? styles.progressFill60 :
+                                rating === 4 ? styles.progressFill80 :
+                                styles.progressFill100
+                              }`}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-200">
+              <div className="flex justify-end">
+                <button
+                  onClick={closeDetailsModal}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </DashboardLayout>
   );
 }
