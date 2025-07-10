@@ -81,6 +81,10 @@ export interface Question {
   required: boolean;
   category: string;
   order?: number;
+  section: string; // A, B, C, D, E, F, G, H
+  sectionTitle: string; // e.g., "Encourages Student-Teacher Relationship"
+  questionNumber: number; // 1-20
+  maxScore: number; // Usually 5 for rating questions
 }
 
 export interface Feedback {

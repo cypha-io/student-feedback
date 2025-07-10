@@ -92,6 +92,10 @@ NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID=responses
   - `required` (Boolean, Required, Default: true)
   - `category` (String, Required, Size: 100)
   - `order` (Integer, Min: 1, Max: 100)
+  - `section` (String, Size: 10) - Section identifier (A, B, C, D, E, F, G, H)
+  - `sectionTitle` (String, Size: 255) - Human-readable section title
+  - `questionNumber` (Integer, Min: 1, Max: 50) - Global question number
+  - `maxScore` (Integer, Min: 1, Max: 10, Default: 5) - Maximum score for rating questions
 
 #### Feedbacks Collection
 - **Collection ID**: `feedbacks`

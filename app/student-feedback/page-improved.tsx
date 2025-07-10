@@ -106,6 +106,7 @@ export default function StudentFeedback() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [siteTitle, setSiteTitle] = useState('Student Feedback Portal');
   
   // Data fetching states
@@ -215,69 +216,70 @@ export default function StudentFeedback() {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      const selectedTeacherData = teachers.find(t => t.$id === selectedTeacher);
+  const calculateOverallScore = () => {
+    let totalScore = 0;
+    let maxTotalScore = 0;
+    let answeredQuestions = 0;
+    let totalQuestions = 0;
 
-      // Include only the fields that are actually in the collection schema
+    sectionKeys.forEach(sectionKey => {
+      const section = FEEDBACK_SECTIONS[sectionKey as keyof typeof FEEDBACK_SECTIONS];
+      totalQuestions += section.questions.length;
+      maxTotalScore += section.questions.length * 5;
+      
+      section.questions.forEach((_, index) => {
+        const questionKey = `${sectionKey}-${index}`;
+        if (responses[questionKey]) {
+          totalScore += responses[questionKey];
+          answeredQuestions++;
+        }
+      });
+    });
+
+    const percentage = maxTotalScore > 0 ? (totalScore / maxTotalScore) * 100 : 0;
+    
+    return { 
+      totalScore, 
+      maxTotalScore, 
+      percentage, 
+      answeredQuestions,
+      totalQuestions
+    };
+  };
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    
+    try {
+      const overallData = calculateOverallScore();
+      const selectedTeacherData = teachers.find(t => t.$id === selectedTeacher);
+      const selectedSubjectData = subjects.find(s => s.$id === selectedSubject);
+      const selectedClassData = classes.find(c => c.$id === studentInfo.class);
+
       const feedbackData = {
-        studentId: studentInfo.studentId,
-        teacherId: selectedTeacher,
         teacherName: selectedTeacherData?.name || '',
-        subjectId: selectedSubject,
-        classId: studentInfo.class,
-        status: 'completed',
+        subject: selectedSubjectData?.name || '',
+        studentName: studentInfo.name,
+        studentId: studentInfo.studentId,
+        class: selectedClassData?.name || '',
+        responses: JSON.stringify(responses),
+        overallScore: overallData.percentage,
+        sectionScores: JSON.stringify({}), // Calculate section scores if needed
+        performanceGrade: overallData.percentage >= 85 ? 'Excellent' : 
+                         overallData.percentage >= 75 ? 'Very Good' :
+                         overallData.percentage >= 65 ? 'Good' :
+                         overallData.percentage >= 50 ? 'Average' : 'Needs Improvement',
         submittedAt: new Date().toISOString()
       };
 
-      console.log('🚀 Attempting to create feedback with teacherName included:', feedbackData);
-      
-      const feedback = await dbHelpers.create(COLLECTIONS.FEEDBACKS, feedbackData);
-      
-      console.log('✅ Feedback created successfully:', feedback);
-
-      // Create response records for each question
-      for (const [sectionKey, sectionData] of Object.entries(FEEDBACK_SECTIONS)) {
-        for (let questionIndex = 0; questionIndex < sectionData.questions.length; questionIndex++) {
-          const questionKey = `${sectionKey}-${questionIndex}`;
-          const answer = responses[questionKey];
-          
-          if (answer) {
-            const responseData = {
-              feedbackId: feedback.$id,
-              questionId: questionKey,
-              answer: answer.toString(),
-              type: 'rating'
-            };
-            
-            try {
-              await dbHelpers.create(COLLECTIONS.RESPONSES, responseData);
-              console.log(`✅ Response created for ${questionKey}`);
-            } catch (responseError) {
-              console.warn(`Failed to create response for ${questionKey}:`, responseError);
-              // Continue with other responses even if one fails
-            }
-          }
-        }
-      }
-
+      await dbHelpers.create(COLLECTIONS.FEEDBACKS, feedbackData);
       setCurrentStep(4);
     } catch (error) {
       console.error('Error submitting feedback:', error);
       alert('Error submitting feedback. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const getProgressWidthClass = () => {
-    const percentage = getProgressPercentage();
-    if (percentage <= 25) return styles.progressWidth25;
-    if (percentage <= 40) return styles.progressWidth40;
-    if (percentage <= 50) return styles.progressWidth50;
-    if (percentage <= 60) return styles.progressWidth60;
-    if (percentage <= 70) return styles.progressWidth70;
-    if (percentage <= 80) return styles.progressWidth80;
-    if (percentage <= 90) return styles.progressWidth90;
-    return styles.progressWidth100;
   };
 
   const getProgressPercentage = () => {
@@ -311,7 +313,8 @@ export default function StudentFeedback() {
         <div className="max-w-2xl mx-auto mb-8">
           <div className="bg-white/10 backdrop-blur-sm rounded-full h-3 mb-4">
             <div 
-              className={`bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500 ${styles.progressBar} ${getProgressWidthClass()}`}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${getProgressPercentage()}%` }}
             />
           </div>
           <div className="text-center text-white/90 text-sm">
@@ -336,7 +339,7 @@ export default function StudentFeedback() {
                     </svg>
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Student Information</h2>
-                  <p className="text-gray-600">Let&apos;s get started with your details</p>
+                  <p className="text-gray-600">Let's get started with your details</p>
                 </div>
                 
                 <form onSubmit={handleStudentInfoSubmit} className="space-y-6 max-w-md mx-auto">
