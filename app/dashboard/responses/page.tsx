@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Client, Databases, Query } from 'appwrite';
 import DashboardLayout from '../../../components/DashboardLayout';
 import styles from './responses.module.css';
@@ -11,54 +11,202 @@ const client = new Client()
 
 const databases = new Databases(client);
 
-interface FeedbackResponse {
+interface Feedback {
+  $id: string;
+  studentId: string;
+  teacherId: string;
+  teacherName: string;
+  subjectId: string;
+  classId: string;
+  status: string;
+  submittedAt: string;
+  $createdAt: string;
+}
+
+interface Response {
+  $id: string;
+  feedbackId: string;
+  questionId: string;
+  answer: string;
+  type: string;
+}
+
+interface ProcessedFeedbackResponse {
   $id: string;
   teacherName: string;
-  studentName?: string;
+  studentId: string;
   responses: Record<string, number>;
   overallScore: number;
   sectionScores: Record<string, number>;
   performanceGrade: string;
   submittedAt: string;
   $createdAt: string;
-  [key: string]: unknown; // Allow additional properties from Appwrite
 }
 
 export default function StudentResponsesPage() {
-  const [responses, setResponses] = useState<FeedbackResponse[]>([]);
+  const [responses, setResponses] = useState<ProcessedFeedbackResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTeacher, setFilterTeacher] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'teacher'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [selectedResponse, setSelectedResponse] = useState<FeedbackResponse | null>(null);
+  const [selectedResponse, setSelectedResponse] = useState<ProcessedFeedbackResponse | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+
+  // Debug info for development
+  const [debugInfo, setDebugInfo] = useState<{
+    totalFeedbacks: number;
+    totalResponses: number;
+    environmentOk: boolean;
+    lastFetch: string | null;
+  }>({
+    totalFeedbacks: 0,
+    totalResponses: 0,
+    environmentOk: false,
+    lastFetch: null
+  });
 
   useEffect(() => {
-    fetchResponses();
+    const loadResponses = async () => {
+      await fetchResponses();
+    };
+    loadResponses();
   }, []);
 
-  const fetchResponses = async () => {
+  const calculatePerformanceGrade = (score: number): string => {
+    if (score >= 4.5) return 'Excellent';
+    if (score >= 3.5) return 'Good';
+    if (score >= 2.5) return 'Average';
+    return 'Poor';
+  };
+
+  const fetchResponses = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await databases.listDocuments(
+      setError(null);
+      
+      console.log('🔍 Fetching feedbacks from database...');
+      console.log('📊 Environment check:');
+      console.log('- Database ID:', process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID);
+      console.log('- Feedbacks Collection:', process.env.NEXT_PUBLIC_APPWRITE_FEEDBACKS_COLLECTION_ID);
+      console.log('- Responses Collection:', process.env.NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID);
+      
+      // Fetch feedbacks
+      const feedbacksResult = await databases.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_FEEDBACK_COLLECTION_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_FEEDBACKS_COLLECTION_ID!,
         [Query.orderDesc('$createdAt'), Query.limit(100)]
       );
-      setResponses(result.documents as unknown as FeedbackResponse[]);
+      
+      console.log('📊 Feedbacks fetched:', feedbacksResult.documents.length);
+      console.log('📊 Total feedbacks in DB:', feedbacksResult.total);
+      
+      if (feedbacksResult.documents.length === 0) {
+        console.log('⚠️ No feedbacks found in database');
+        setResponses([]);
+        return;
+      }
+
+      // Fetch all responses
+      const responsesResult = await databases.listDocuments(
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID!,
+        [Query.limit(1000)] // Get enough responses
+      );
+      
+      console.log('📝 Responses fetched:', responsesResult.documents.length);
+      console.log('📝 Total responses in DB:', responsesResult.total);
+
+      // Update debug info
+      setDebugInfo({
+        totalFeedbacks: feedbacksResult.total,
+        totalResponses: responsesResult.total,
+        environmentOk: !!(process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID && 
+                         process.env.NEXT_PUBLIC_APPWRITE_FEEDBACKS_COLLECTION_ID && 
+                         process.env.NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID),
+        lastFetch: new Date().toISOString()
+      });
+
+      // Process the data
+      const processedResponses: ProcessedFeedbackResponse[] = [];
+      
+      for (const feedback of feedbacksResult.documents as unknown as Feedback[]) {
+        // Get responses for this feedback
+        const feedbackResponses = responsesResult.documents.filter(
+          (response: unknown) => (response as Response).feedbackId === feedback.$id
+        ) as unknown as Response[];
+        
+        // Calculate scores
+        const responseScores: Record<string, number> = {};
+        const sectionScores: Record<string, number> = {};
+        
+        for (const response of feedbackResponses) {
+          const score = parseInt(response.answer);
+          if (!isNaN(score)) {
+            responseScores[response.questionId] = score;
+            
+            // Extract section from questionId (e.g., "A-0" -> "A")
+            const section = response.questionId.split('-')[0];
+            if (!sectionScores[section]) {
+              sectionScores[section] = 0;
+            }
+            sectionScores[section] += score;
+          }
+        }
+        
+        // Calculate section averages
+        const sections = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        const sectionsPerQuestionCount: Record<string, number> = {
+          'A': 3, 'B': 3, 'C': 3, 'D': 3, 'E': 2, 'F': 2, 'G': 2, 'H': 2
+        };
+        
+        for (const section of sections) {
+          if (sectionScores[section]) {
+            sectionScores[section] = sectionScores[section] / sectionsPerQuestionCount[section];
+          }
+        }
+        
+        // Calculate overall score
+        const allScores = Object.values(responseScores);
+        const overallScore = allScores.length > 0 
+          ? allScores.reduce((sum, score) => sum + score, 0) / allScores.length 
+          : 0;
+        
+        processedResponses.push({
+          $id: feedback.$id,
+          teacherName: feedback.teacherName,
+          studentId: feedback.studentId,
+          responses: responseScores,
+          overallScore,
+          sectionScores,
+          performanceGrade: calculatePerformanceGrade(overallScore),
+          submittedAt: feedback.submittedAt,
+          $createdAt: feedback.$createdAt
+        });
+      }
+      
+      setResponses(processedResponses);
+      console.log('✅ Processed responses:', processedResponses.length);
+      
     } catch (error) {
-      console.error('Error fetching responses:', error);
+      console.error('❌ Error fetching responses:', error);
+      setError(`Failed to load responses: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchResponses();
+  }, [fetchResponses]);
 
   const filteredAndSortedResponses = responses
     .filter(response => {
       const matchesSearch = !searchTerm || 
         response.teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        response.studentName?.toLowerCase().includes(searchTerm.toLowerCase());
+        response.studentId.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTeacher = !filterTeacher || response.teacherName === filterTeacher;
       return matchesSearch && matchesTeacher;
     })
@@ -100,7 +248,7 @@ export default function StudentResponsesPage() {
     });
   };
 
-  const handleViewDetails = (response: FeedbackResponse) => {
+  const handleViewDetails = (response: ProcessedFeedbackResponse) => {
     setSelectedResponse(response);
     setShowDetailsModal(true);
   };
@@ -115,7 +263,36 @@ export default function StudentResponsesPage() {
       <DashboardLayout>
         <div className="p-6">
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading student responses...</p>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="text-red-800 font-medium">Failed to load responses</h3>
+                <p className="text-red-600 text-sm mt-1">{error}</p>
+                <button 
+                  onClick={fetchResponses}
+                  className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </DashboardLayout>
@@ -132,11 +309,48 @@ export default function StudentResponsesPage() {
               <h1 className="text-2xl font-bold text-gray-900">Student Responses</h1>
               <p className="text-gray-600">View and analyze all student feedback submissions</p>
             </div>
-            <div className="bg-blue-50 px-4 py-2 rounded-lg">
-              <span className="text-blue-700 font-semibold">{responses.length} Total Responses</span>
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-50 px-4 py-2 rounded-lg">
+                <span className="text-blue-700 font-semibold">{responses.length} Total Responses</span>
+              </div>
+              {process.env.NODE_ENV === 'development' && (
+                <button
+                  onClick={() => setShowDebugInfo(!showDebugInfo)}
+                  className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  title="Show debug information"
+                >
+                  🐛 Debug
+                </button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Debug Panel (Development Only) */}
+        {process.env.NODE_ENV === 'development' && showDebugInfo && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-yellow-900 mb-4">🐛 Debug Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <h3 className="font-medium text-yellow-900 mb-2">Environment Variables:</h3>
+                <ul className="space-y-1 text-yellow-800">
+                  <li>Database ID: {process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID ? '✅ Set' : '❌ Missing'}</li>
+                  <li>Feedbacks Collection: {process.env.NEXT_PUBLIC_APPWRITE_FEEDBACKS_COLLECTION_ID ? '✅ Set' : '❌ Missing'}</li>
+                  <li>Responses Collection: {process.env.NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID ? '✅ Set' : '❌ Missing'}</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-medium text-yellow-900 mb-2">Database Status:</h3>
+                <ul className="space-y-1 text-yellow-800">
+                  <li>Total Feedbacks in DB: {debugInfo.totalFeedbacks}</li>
+                  <li>Total Responses in DB: {debugInfo.totalResponses}</li>
+                  <li>Environment OK: {debugInfo.environmentOk ? '✅ Yes' : '❌ No'}</li>
+                  <li>Last Fetch: {debugInfo.lastFetch ? new Date(debugInfo.lastFetch).toLocaleTimeString() : 'Never'}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filters and Search */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -209,8 +423,28 @@ export default function StudentResponsesPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No responses found</h3>
-              <p className="text-gray-600">No feedback responses match your current filters.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No feedback responses found</h3>
+              <p className="text-gray-600 mb-4">
+                {responses.length === 0 
+                  ? "No student feedback has been submitted yet. Students need to submit feedback through the feedback form first."
+                  : "No responses match your current filters."
+                }
+              </p>
+              {responses.length === 0 && (
+                <div className="bg-blue-50 rounded-lg p-4 text-left max-w-md mx-auto">
+                  <h4 className="font-semibold text-blue-900 mb-2">To see feedback responses:</h4>
+                  <ol className="text-sm text-blue-800 space-y-1">
+                    <li>1. Students must visit the feedback form</li>
+                    <li>2. Complete and submit their evaluations</li>
+                    <li>3. Responses will then appear here automatically</li>
+                  </ol>
+                  <div className="mt-3 pt-3 border-t border-blue-200">
+                    <p className="text-xs text-blue-700">
+                      <strong>Note:</strong> In production, ensure environment variables are properly configured and database collections have the correct permissions.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="overflow-hidden">
@@ -245,7 +479,7 @@ export default function StudentResponsesPage() {
                           <div className="font-medium text-gray-900">{response.teacherName}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-gray-600">{response.studentName || 'Anonymous'}</div>
+                          <div className="text-gray-600">{response.studentId || 'Anonymous'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
@@ -356,8 +590,8 @@ export default function StudentResponsesPage() {
                       <span className="ml-2 text-gray-900">{selectedResponse.teacherName}</span>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-gray-600">Student:</span>
-                      <span className="ml-2 text-gray-900">{selectedResponse.studentName || 'Anonymous'}</span>
+                      <span className="text-sm font-medium text-gray-600">Student ID:</span>
+                      <span className="ml-2 text-gray-900">{selectedResponse.studentId || 'Anonymous'}</span>
                     </div>
                     <div>
                       <span className="text-sm font-medium text-gray-600">Overall Score:</span>
