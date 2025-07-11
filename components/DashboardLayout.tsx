@@ -2,8 +2,8 @@
 
 import { useState, ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import CopyrightPopup from './CopyrightPopup';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from './AuthProvider';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -79,6 +79,13 @@ const navigation = [
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/admin-login');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950">
@@ -107,8 +114,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">EduFeedback</h1>
-              <p className="text-xs text-white/80">Admin Dashboard</p>
+              <h1 className="text-xl font-bold text-white">SMEI</h1>
+              <p className="text-xs text-white/80">Cypha Inc.</p>
             </div>
           </div>
         </div>
@@ -159,6 +166,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   System Administrator
                 </p>
               </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
+                title="Logout"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -239,11 +255,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="mx-auto max-w-7xl">
             {children}
           </div>
+          
+          {/* Footer Attribution */}
+          <footer className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="max-w-7xl mx-auto">
+              <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+                SMEI - Student-Teacher Evaluation & Management Intelligence<br/>
+                Built by <span className="font-medium">Chamba Nanang - Cypha Inc.</span> | Deployed for OLAGSHS
+              </p>
+            </div>
+          </footer>
         </main>
       </div>
-
-      {/* Copyright Popup */}
-      <CopyrightPopup />
     </div>
   );
 }

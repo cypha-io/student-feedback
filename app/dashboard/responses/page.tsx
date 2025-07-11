@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Client, Databases, Query } from 'appwrite';
 import DashboardLayout from '../../../components/DashboardLayout';
+import ProtectedRoute from '../../../components/ProtectedRoute';
 import styles from './responses.module.css';
 
 const client = new Client()
@@ -300,7 +301,8 @@ export default function StudentResponsesPage() {
   }
 
   return (
-    <DashboardLayout>
+    <ProtectedRoute>
+      <DashboardLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -670,5 +672,6 @@ export default function StudentResponsesPage() {
       )}
 
     </DashboardLayout>
+    </ProtectedRoute>
   );
 }

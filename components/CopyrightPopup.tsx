@@ -15,6 +15,7 @@ export default function CopyrightPopup({ showOnMount = true }: CopyrightPopupPro
     if (typeof window !== 'undefined') {
       const hasSeenCopyright = localStorage.getItem('hasSeenCopyright');
       if (!hasSeenCopyright) {
+        
         // Show popup after a brief delay
         const showTimer = setTimeout(() => {
           setShowCopyrightPopup(true);

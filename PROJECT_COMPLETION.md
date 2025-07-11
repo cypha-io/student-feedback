@@ -1,4 +1,11 @@
-# Project Completion Status
+# SMEI - Project Completion Status
+
+## Software Information
+
+**SMEI - Student-Teacher Evaluation & Management Intelligence**  
+**Developer:** Chamba Nanang - Cypha Inc.  
+**Deployed for:** Our Lady of Grace Senior High School (OLAGSHS)  
+**Version:** 1.0.0
 
 ## ✅ COMPLETED TASKS
 

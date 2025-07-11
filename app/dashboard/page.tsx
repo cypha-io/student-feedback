@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
 import { Teacher, Feedback, Response } from '@/types/database';
 
@@ -187,7 +188,8 @@ export default function EvaluationOverview() {
   }
 
   return (
-    <DashboardLayout>
+    <ProtectedRoute>
+      <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -363,5 +365,6 @@ export default function EvaluationOverview() {
         </div>
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   );
 }

@@ -1,8 +1,14 @@
-# Student Responses Dashboard - Connection Guide
+# SMEI - Student Responses Dashboard - Connection Guide
 
 ## Issue Resolution Summary
 
 The student responses page was showing empty data after deployment because **there were no feedback submissions in the database**. Here's what we've done to fix and improve the system:
+
+## Software Information
+
+**SMEI - Student-Teacher Evaluation & Management Intelligence**  
+**Developer:** Chamba Nanang - Cypha Inc.  
+**Deployed for:** Our Lady of Grace Senior High School (OLAGSHS)
 
 ## ✅ Changes Made
 

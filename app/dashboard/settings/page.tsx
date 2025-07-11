@@ -15,8 +15,8 @@ export default function Settings() {
 
   // Website settings state
   const [websiteSettings, setWebsiteSettings] = useState({
-    siteName: 'EduFeedback System',
-    siteTitle: 'Student Feedback Portal',
+    siteName: 'SMEI - Cypha Inc.',
+    siteTitle: 'Student-Teacher Evaluation & Management Intelligence',
     academicYear: '2024-2025'
   });
   const [loading, setLoading] = useState(false);

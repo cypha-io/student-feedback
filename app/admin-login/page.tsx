@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com';
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123';
+import { useAuth } from '../../components/AuthProvider';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -12,13 +10,16 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    // Simple env-based check
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+    
+    const success = await login(email, password);
+    
+    if (success) {
       router.push('/dashboard');
     } else {
       setError('Invalid email or password');
@@ -27,8 +28,8 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative bg-cover bg-center" style={{ backgroundImage: "url('https://olagshs.edu.gh/wp-content/uploads/2024/12/olag-shs-2024-brast-cancer-program-16-scaled.jpg')" }}>
-      <div className="absolute inset-0 bg-black/50 dark:bg-black/70 z-0" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative bg-slate-900">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-slate-900 to-indigo-900/20 z-0" />
       <div className="w-full max-w-md z-10">
         <form onSubmit={handleLogin} className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/50 w-full max-w-md mx-auto space-y-6 relative">
           <div className="flex flex-col items-center space-y-2 mb-4">
@@ -37,8 +38,9 @@ export default function AdminLogin() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">Admin Login</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-center">Sign in to access the dashboard</p>
+            <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">SMEI - Cypha Inc.</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-center">Admin Portal - Sign in to dashboard</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 text-center">Built by Chamba Nanang | OLAGSHS Deployment</p>
           </div>
           <input
             type="email"

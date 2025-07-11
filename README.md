@@ -1,6 +1,9 @@
-# Teacher Evaluation System
+# SMEI - Student-Teacher Evaluation & Management Intelligence
 
 A comprehensive web application for collecting and analyzing student feedback on teacher performance. Built with Next.js, TypeScript, and Appwrite as the backend.
+
+**Software Developer:** Chamba Nanang - Cypha Inc.  
+**Deployed for:** Our Lady of Grace Senior High School (OLAGSHS)
 
 ## Features
 

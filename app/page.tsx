@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './homepage.module.css';
-import CopyrightPopup from '../components/CopyrightPopup';
 
 export default function Home() {
-  const [siteName, setSiteName] = useState('EduFeedback System');
+  const [siteName, setSiteName] = useState('SMEI - Cypha Inc.');
   const router = useRouter();
 
   // Load site name from localStorage on mount
@@ -16,7 +15,7 @@ export default function Home() {
       if (savedSettings) {
         try {
           const settings = JSON.parse(savedSettings);
-          setSiteName(settings.siteName || 'EduFeedback System');
+          setSiteName(settings.siteName || 'SMEI - Cypha Inc.');
         } catch (error) {
           console.error('Error loading settings:', error);
         }
@@ -52,7 +51,10 @@ export default function Home() {
                 {siteName}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2 text-base">
-                Modern education feedback system
+                Student-Teacher Evaluation & Management Intelligence
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                Built by Chamba Nanang - Cypha Inc. | Deployed for OLAGSHS
               </p>
               <div className="flex items-center justify-center mt-3 space-x-2">
                 <div className="h-1 w-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"></div>
@@ -134,9 +136,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      {/* Copyright Popup */}
-      <CopyrightPopup />
     </div>
   );
 }

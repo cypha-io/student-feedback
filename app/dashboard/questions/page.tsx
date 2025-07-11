@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
 
 interface Question {
@@ -410,7 +411,8 @@ export default function QuestionsForm() {
   };
 
   return (
-    <DashboardLayout>
+    <ProtectedRoute>
+      <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -966,5 +968,6 @@ export default function QuestionsForm() {
         )}
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   );
 }

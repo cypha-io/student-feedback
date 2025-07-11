@@ -135,7 +135,7 @@ export default function StudentFeedback() {
       if (savedSettings) {
         try {
           const settings = JSON.parse(savedSettings);
-          setSiteTitle(settings.siteTitle || 'Student Feedback Portal');
+          setSiteTitle(settings.siteTitle || 'SMEI - Cypha Inc.');
         } catch (error) {
           console.error('Error loading settings:', error);
         }
@@ -596,6 +596,13 @@ export default function StudentFeedback() {
                   >
                     Return to Homepage
                   </button>
+                </div>
+                
+                {/* Software Attribution */}
+                <div className="text-center pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500">
+                    SMEI - Cypha Inc. by Chamba Nanang | Deployed for OLAGSHS
+                  </p>
                 </div>
               </div>
             )}

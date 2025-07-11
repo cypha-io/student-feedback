@@ -17,8 +17,8 @@ const WebsiteSettingsContext = createContext<WebsiteSettingsContextType | undefi
 
 export function WebsiteSettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<WebsiteSettings>({
-    siteName: 'EduFeedback System',
-    siteTitle: 'Student Feedback Portal',
+    siteName: 'SMEI - Cypha Inc.',
+    siteTitle: 'Student-Teacher Evaluation & Management Intelligence',
     academicYear: '2024-2025'
   });
 
