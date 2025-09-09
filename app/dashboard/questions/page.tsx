@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
+import { dbHelpers, COLLECTIONS } from '@/lib/neon';
 
 interface Question {
-  $id?: string;
+  id?: string;
   question: string;
   type: 'rating' | 'text' | 'multiple_choice';
   options?: string[];
@@ -90,7 +90,7 @@ export default function QuestionsForm() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [previewResponses, setPreviewResponses] = useState<Record<string, number>>({});
-  const [formData, setFormData] = useState<Omit<Question, '$id'>>({
+  const [formData, setFormData] = useState<Omit<Question, 'id'>>({
     question: '',
     type: 'rating',
     options: [],
@@ -148,11 +148,11 @@ export default function QuestionsForm() {
       
       if (editingQuestion) {
         // Update existing question
-        console.log('📝 Updating question with ID:', editingQuestion.$id);
-        await dbHelpers.update(COLLECTIONS.QUESTIONS, editingQuestion.$id!, formData);
+        console.log('📝 Updating question with ID:', editingQuestion.id);
+        await dbHelpers.update(COLLECTIONS.QUESTIONS, editingQuestion.id!, formData);
         setQuestions(questions.map(question => 
-          question.$id === editingQuestion.$id 
-            ? { ...formData, $id: editingQuestion.$id }
+          question.id === editingQuestion.id 
+            ? { ...formData, id: editingQuestion.id }
             : question
         ));
       } else {
@@ -172,14 +172,14 @@ export default function QuestionsForm() {
       // Fallback to local state
       if (editingQuestion) {
         setQuestions(questions.map(question => 
-          question.$id === editingQuestion.$id 
-            ? { ...formData, $id: editingQuestion.$id }
+          question.id === editingQuestion.id 
+            ? { ...formData, id: editingQuestion.id }
             : question
         ));
       } else {
         const newQuestion: Question = {
           ...formData,
-          $id: Date.now().toString(),
+          id: Date.now().toString(),
         };
         setQuestions([...questions, newQuestion]);
       }
@@ -228,12 +228,12 @@ export default function QuestionsForm() {
     try {
       console.log('🗑️ Deleting question with ID:', id);
       await dbHelpers.delete(COLLECTIONS.QUESTIONS, id);
-      setQuestions(questions.filter(question => question.$id !== id));
+      setQuestions(questions.filter(question => question.id !== id));
       alert('Question deleted successfully!');
     } catch (error) {
       console.error('❌ Error deleting question:', error);
       // Fallback to local state
-      setQuestions(questions.filter(question => question.$id !== id));
+      setQuestions(questions.filter(question => question.id !== id));
     }
   };
 
@@ -285,8 +285,8 @@ export default function QuestionsForm() {
     try {
       // Clear existing questions
       for (const question of questions) {
-        if (question.$id) {
-          await dbHelpers.delete(COLLECTIONS.QUESTIONS, question.$id);
+        if (question.id) {
+          await dbHelpers.delete(COLLECTIONS.QUESTIONS, question.id);
         }
       }
       
@@ -307,7 +307,7 @@ export default function QuestionsForm() {
           const result = await dbHelpers.create(COLLECTIONS.QUESTIONS, questionData);
           newQuestions.push({ 
             ...questionData, 
-            $id: result.$id,
+            id: result.id,
             section: sectionKey,
             sectionTitle: sectionData.title,
             questionNumber: questionNumber,
@@ -477,7 +477,7 @@ export default function QuestionsForm() {
             ) : (
               questions.map((question, index) => (
                 <div
-                  key={question.$id}
+                  key={question.id}
                   className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600"
                 >
                   <div className="flex items-start justify-between">
@@ -571,7 +571,7 @@ export default function QuestionsForm() {
                         ✏️
                       </button>
                       <button
-                        onClick={() => handleDelete(question.$id!)}
+                        onClick={() => handleDelete(question.id!)}
                         className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
                         title="Delete question"
                       >

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Teacher, Department, Class as ClassType, Subject } from '@/types/database';
-import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
+import { dbHelpers, COLLECTIONS } from '@/lib/neon';
 
 export default function ManageTeachers() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { dbHelpers, COLLECTIONS, DATABASE_ID } from '@/lib/appwrite';
+import { dbHelpers, COLLECTIONS } from '@/lib/neon';
 
 export default function DatabaseTest() {
   const [testResults, setTestResults] = useState<string[]>([]);
@@ -16,7 +16,7 @@ export default function DatabaseTest() {
     setTestResults([]);
     
     addLog('🔍 Starting database connectivity test...');
-    addLog(`📊 Database ID: ${DATABASE_ID}`);
+    addLog(`📊 Database: Neon PostgreSQL`);
     
     // Test each collection
     const collections = Object.entries(COLLECTIONS);
@@ -42,10 +42,10 @@ export default function DatabaseTest() {
       };
       
       const result = await dbHelpers.create(COLLECTIONS.DEPARTMENTS, testDept);
-      addLog(`✅ Department created successfully: ${result.$id}`);
+      addLog(`✅ Department created successfully: ${result.id}`);
       
       // Clean up - delete the test department
-      await dbHelpers.delete(COLLECTIONS.DEPARTMENTS, result.$id);
+      await dbHelpers.delete(COLLECTIONS.DEPARTMENTS, result.id);
       addLog(`🗑️ Test department cleaned up`);
       
     } catch (error) {
@@ -69,10 +69,10 @@ export default function DatabaseTest() {
       };
       
       const result = await dbHelpers.create(COLLECTIONS.SUBJECTS, testSubject);
-      addLog(`✅ Subject created successfully: ${result.$id}`);
+      addLog(`✅ Subject created successfully: ${result.id}`);
       
       // Clean up
-      await dbHelpers.delete(COLLECTIONS.SUBJECTS, result.$id);
+      await dbHelpers.delete(COLLECTIONS.SUBJECTS, result.id);
       addLog(`🗑️ Test subject cleaned up`);
       
     } catch (error) {
@@ -95,10 +95,10 @@ export default function DatabaseTest() {
       };
       
       const result = await dbHelpers.create(COLLECTIONS.CLASSES, testClass);
-      addLog(`✅ Class created successfully: ${result.$id}`);
+      addLog(`✅ Class created successfully: ${result.id}`);
       
       // Clean up
-      await dbHelpers.delete(COLLECTIONS.CLASSES, result.$id);
+      await dbHelpers.delete(COLLECTIONS.CLASSES, result.id);
       addLog(`🗑️ Test class cleaned up`);
       
     } catch (error) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
+import { dbHelpers, COLLECTIONS } from '@/lib/neon';
 import { Subject as SubjectType, Class as ClassType, Department as DepartmentType } from '@/types/database';
 
 export default function Settings() {
@@ -29,12 +29,12 @@ export default function Settings() {
   // Form states
   const [subjectForm, setSubjectForm] = useState<Omit<SubjectType, '$id' | '$createdAt' | '$updatedAt'>>({ 
     name: '', 
-    code: '', 
     department: '' 
   });
   const [classForm, setClassForm] = useState<Omit<ClassType, '$id' | '$createdAt' | '$updatedAt'>>({ 
     name: '', 
     grade: '', 
+    year: '',
     capacity: 0 
   });
   const [departmentForm, setDepartmentForm] = useState<Omit<DepartmentType, '$id' | '$createdAt' | '$updatedAt'>>({ 
@@ -116,8 +116,8 @@ export default function Settings() {
   const handleAddSubject = async () => {
     try {
       // Validate required fields
-      if (!subjectForm.name || !subjectForm.code || !subjectForm.department) {
-        alert('Please fill in all required fields (Name, Code, Department)');
+      if (!subjectForm.name || !subjectForm.department) {
+        alert('Please fill in all required fields (Name, Department)');
         return;
       }
       
@@ -150,8 +150,8 @@ export default function Settings() {
   const handleAddClass = async () => {
     try {
       // Validate required fields
-      if (!classForm.name || !classForm.grade) {
-        alert('Please fill in all required fields (Name, Year)');
+      if (!classForm.name || !classForm.grade || !classForm.year) {
+        alert('Please fill in all required fields (Name, Grade, Year)');
         return;
       }
       
@@ -205,13 +205,13 @@ export default function Settings() {
   };
 
   const resetSubjectForm = () => {
-    setSubjectForm({ name: '', code: '', department: '' });
+    setSubjectForm({ name: '', department: '' });
     setShowSubjectModal(false);
     setEditingId(null);
   };
 
   const resetClassForm = () => {
-    setClassForm({ name: '', grade: '', capacity: 0 });
+    setClassForm({ name: '', grade: '', year: '', capacity: 0 });
     setShowClassModal(false);
     setEditingId(null);
   };
@@ -238,11 +238,11 @@ export default function Settings() {
     setEditingId(item.$id!);
     if (type === 'subject') {
       const subject = item as SubjectType;
-      setSubjectForm({ name: subject.name, code: subject.code, department: subject.department });
+      setSubjectForm({ name: subject.name, department: subject.department });
       setShowSubjectModal(true);
     } else if (type === 'class') {
       const cls = item as ClassType;
-      setClassForm({ name: cls.name, grade: cls.grade, capacity: cls.capacity });
+      setClassForm({ name: cls.name, grade: cls.grade, year: cls.year, capacity: cls.capacity });
       setShowClassModal(true);
     } else if (type === 'department') {
       const dept = item as DepartmentType;
@@ -429,9 +429,6 @@ export default function Settings() {
                           Subject
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Code
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           Department
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -457,9 +454,6 @@ export default function Settings() {
                           <tr key={subject.$id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                               {subject.name}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                              {subject.code}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               {subject.department}
@@ -512,7 +506,10 @@ export default function Settings() {
                           Class Name
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Year
+                          Grade
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Academic Year
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           Capacity
@@ -543,6 +540,9 @@ export default function Settings() {
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               {cls.grade}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                              {cls.year}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               {cls.capacity}
@@ -685,19 +685,6 @@ export default function Settings() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="subject-code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Subject Code
-                  </label>
-                  <input
-                    id="subject-code"
-                    type="text"
-                    placeholder="Enter subject code"
-                    value={subjectForm.code}
-                    onChange={(e) => setSubjectForm({...subjectForm, code: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-                <div>
                   <label htmlFor="subject-department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Department
                   </label>
@@ -757,7 +744,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <label htmlFor="class-grade" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Year
+                    Grade
                   </label>
                   <select
                     id="class-grade"
@@ -765,10 +752,27 @@ export default function Settings() {
                     onChange={(e) => setClassForm({...classForm, grade: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="">Select Year</option>
-                    <option value="Year 1">Year 1</option>
-                    <option value="Year 2">Year 2</option>
-                    <option value="Year 3">Year 3</option>
+                    <option value="">Select Grade</option>
+                    <option value="Form 1">Form 1</option>
+                    <option value="Form 2">Form 2</option>
+                    <option value="Form 3">Form 3</option>
+                    <option value="Form 4">Form 4</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="class-year" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Academic Year
+                  </label>
+                  <select
+                    id="class-year"
+                    value={classForm.year}
+                    onChange={(e) => setClassForm({...classForm, year: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select Academic Year</option>
+                    <option value="2024-2025">2024-2025</option>
+                    <option value="2025-2026">2025-2026</option>
+                    <option value="2026-2027">2026-2027</option>
                   </select>
                 </div>
                 <div>

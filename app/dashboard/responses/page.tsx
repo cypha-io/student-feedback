@@ -1,19 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Client, Databases, Query } from 'appwrite';
+import { dbHelpers, COLLECTIONS } from '@/lib/neon';
 import DashboardLayout from '../../../components/DashboardLayout';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 import styles from './responses.module.css';
 
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
-
-const databases = new Databases(client);
-
 interface Feedback {
-  $id: string;
+  id: string;
   studentId: string;
   teacherId: string;
   teacherName: string;
@@ -21,11 +15,11 @@ interface Feedback {
   classId: string;
   status: string;
   submittedAt: string;
-  $createdAt: string;
+  createdAt: string;
 }
 
 interface Response {
-  $id: string;
+  id: string;
   feedbackId: string;
   questionId: string;
   answer: string;
@@ -33,7 +27,7 @@ interface Response {
 }
 
 interface ProcessedFeedbackResponse {
-  $id: string;
+  id: string;
   teacherName: string;
   studentId: string;
   responses: Record<string, number>;
@@ -41,7 +35,7 @@ interface ProcessedFeedbackResponse {
   sectionScores: Record<string, number>;
   performanceGrade: string;
   submittedAt: string;
-  $createdAt: string;
+  createdAt: string;
 }
 
 export default function StudentResponsesPage() {
@@ -89,20 +83,11 @@ export default function StudentResponsesPage() {
       setError(null);
       
       console.log('🔍 Fetching feedbacks from database...');
-      console.log('📊 Environment check:');
-      console.log('- Database ID:', process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID);
-      console.log('- Feedbacks Collection:', process.env.NEXT_PUBLIC_APPWRITE_FEEDBACKS_COLLECTION_ID);
-      console.log('- Responses Collection:', process.env.NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID);
       
-      // Fetch feedbacks
-      const feedbacksResult = await databases.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_FEEDBACKS_COLLECTION_ID!,
-        [Query.orderDesc('$createdAt'), Query.limit(100)]
-      );
+      // Fetch feedbacks using new Neon database
+      const feedbacksResult = await dbHelpers.getAll(COLLECTIONS.FEEDBACKS);
       
       console.log('📊 Feedbacks fetched:', feedbacksResult.documents.length);
-      console.log('📊 Total feedbacks in DB:', feedbacksResult.total);
       
       if (feedbacksResult.documents.length === 0) {
         console.log('⚠️ No feedbacks found in database');
@@ -111,22 +96,15 @@ export default function StudentResponsesPage() {
       }
 
       // Fetch all responses
-      const responsesResult = await databases.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID!,
-        [Query.limit(1000)] // Get enough responses
-      );
+      const responsesResult = await dbHelpers.getAll(COLLECTIONS.RESPONSES);
       
       console.log('📝 Responses fetched:', responsesResult.documents.length);
-      console.log('📝 Total responses in DB:', responsesResult.total);
 
       // Update debug info
       setDebugInfo({
-        totalFeedbacks: feedbacksResult.total,
-        totalResponses: responsesResult.total,
-        environmentOk: !!(process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID && 
-                         process.env.NEXT_PUBLIC_APPWRITE_FEEDBACKS_COLLECTION_ID && 
-                         process.env.NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID),
+        totalFeedbacks: feedbacksResult.documents.length,
+        totalResponses: responsesResult.documents.length,
+        environmentOk: !!(process.env.DATABASE_URL),
         lastFetch: new Date().toISOString()
       });
 
@@ -136,7 +114,7 @@ export default function StudentResponsesPage() {
       for (const feedback of feedbacksResult.documents as unknown as Feedback[]) {
         // Get responses for this feedback
         const feedbackResponses = responsesResult.documents.filter(
-          (response: unknown) => (response as Response).feedbackId === feedback.$id
+          (response: unknown) => (response as Response).feedbackId === feedback.id
         ) as unknown as Response[];
         
         // Calculate scores
@@ -176,7 +154,7 @@ export default function StudentResponsesPage() {
           : 0;
         
         processedResponses.push({
-          $id: feedback.$id,
+          id: feedback.id,
           teacherName: feedback.teacherName,
           studentId: feedback.studentId,
           responses: responseScores,
@@ -184,7 +162,7 @@ export default function StudentResponsesPage() {
           sectionScores,
           performanceGrade: calculatePerformanceGrade(overallScore),
           submittedAt: feedback.submittedAt,
-          $createdAt: feedback.$createdAt
+          createdAt: feedback.createdAt
         });
       }
       
@@ -215,7 +193,7 @@ export default function StudentResponsesPage() {
       let comparison = 0;
       switch (sortBy) {
         case 'date':
-          comparison = new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime();
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           break;
         case 'score':
           comparison = a.overallScore - b.overallScore;
@@ -336,9 +314,8 @@ export default function StudentResponsesPage() {
               <div>
                 <h3 className="font-medium text-yellow-900 mb-2">Environment Variables:</h3>
                 <ul className="space-y-1 text-yellow-800">
-                  <li>Database ID: {process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID ? '✅ Set' : '❌ Missing'}</li>
-                  <li>Feedbacks Collection: {process.env.NEXT_PUBLIC_APPWRITE_FEEDBACKS_COLLECTION_ID ? '✅ Set' : '❌ Missing'}</li>
-                  <li>Responses Collection: {process.env.NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID ? '✅ Set' : '❌ Missing'}</li>
+                  <li>Database URL: {process.env.DATABASE_URL ? '✅ Set' : '❌ Missing'}</li>
+                  <li>Database Type: Neon PostgreSQL</li>
                 </ul>
               </div>
               <div>
@@ -476,7 +453,7 @@ export default function StudentResponsesPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredAndSortedResponses.map((response) => (
-                      <tr key={response.$id} className="hover:bg-gray-50">
+                      <tr key={response.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="font-medium text-gray-900">{response.teacherName}</div>
                         </td>
@@ -497,7 +474,7 @@ export default function StudentResponsesPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {formatDate(response.$createdAt)}
+                          {formatDate(response.createdAt)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <button 
@@ -565,7 +542,7 @@ export default function StudentResponsesPage() {
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">Feedback Details</h2>
                   <p className="text-gray-600 mt-1">
-                    Submitted on {formatDate(selectedResponse.$createdAt)}
+                    Submitted on {formatDate(selectedResponse.createdAt)}
                   </p>
                 </div>
                 <button

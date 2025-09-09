@@ -31,15 +31,15 @@ A comprehensive web application for collecting and analyzing student feedback on
 
 - **Frontend**: Next.js 15 with TypeScript
 - **Styling**: Tailwind CSS
-- **Backend**: Appwrite (Database, Authentication)
+- **Backend**: Neon Database (PostgreSQL) with Drizzle ORM
 - **Deployment**: Optimized for Vercel
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js 18+ installed
-- Appwrite account and project configured
-- Environment variables set up (see APPWRITE_SETUP.md)
+- Neon database account and project configured
+- Environment variables set up
 
 ### Installation
 
@@ -56,20 +56,41 @@ npm install
 
 3. Set up environment variables:
    - Copy `.env.local.example` to `.env.local`
-   - Fill in your Appwrite credentials (see APPWRITE_SETUP.md for details)
+   - Add your Neon database URL:
+   ```
+   DATABASE_URL=your_neon_database_connection_string
+   ```
 
-4. Populate initial data:
+4. Generate and run database migrations:
 ```bash
-# Load standard evaluation questions
-node scripts/populate-feedback-questions.js
+# Generate migration files
+npm run db:generate
+
+# Push schema to database
+npm run db:push
 ```
 
-5. Run the development server:
+5. Populate initial data:
+```bash
+# Load sample data including classes with years
+npm run db:populate
+```
+
+6. Run the development server:
 ```bash
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) to view the application
+7. Open [http://localhost:3000](http://localhost:3000) to view the application
+
+## Database Management
+
+### Drizzle Commands
+- `npm run db:generate` - Generate migration files from schema changes
+- `npm run db:push` - Push schema changes directly to database
+- `npm run db:migrate` - Run pending migrations
+- `npm run db:studio` - Open Drizzle Studio for database browsing
+- `npm run db:populate` - Populate database with sample data
 
 ## Usage
 
@@ -91,15 +112,38 @@ npm run dev
 
 ## Database Schema
 
-### Questions Collection
-- Section-based organization (A-H)
-- Standard evaluation criteria
-- Customizable question text and ordering
+### Core Tables
 
-### Feedback Collection
-- Teacher evaluation responses
-- Section scores and overall performance
-- Submission timestamps and student information
+#### Classes Table
+- **Enhanced with Year Field**: Classes now include both grade and academic year for better differentiation
+- Example: "Form 1A - 2024-2025" vs "Form 1A - 2025-2026"
+- Supports capacity tracking
+
+#### Subjects Table  
+- **Simplified Structure**: Removed subject codes for cleaner management
+- Focus on subject name and department association
+- Streamlined subject selection interface
+
+#### Teachers Table
+- Teacher profiles with department assignments
+- Subject associations and class responsibilities
+- Contact information management
+
+#### Students Table
+- Student profiles with class and section assignments
+- Support for evaluation submissions
+
+#### Feedback & Responses
+- Comprehensive evaluation tracking
+- Section-based scoring (A-H categories)
+- Performance metrics and grading
+
+### Key Improvements
+
+- **Class Differentiation**: Academic year field added to distinguish classes across different years
+- **Simplified Subjects**: Removed unnecessary subject code complexity  
+- **PostgreSQL Benefits**: Better performance, ACID compliance, and advanced querying
+- **Type Safety**: Full TypeScript support with Drizzle ORM
 
 ## Development
 
@@ -116,8 +160,9 @@ scripts/                # Database utilities
 
 ### Key Components
 - `DashboardLayout`: Admin navigation and layout
-- `ClientProvider`: Appwrite client configuration
-- Database utilities in `/lib/appwrite.ts`
+- `ClientProvider`: Database client configuration
+- Database utilities in `/lib/db/` and schema definitions
+- Drizzle ORM integration for type-safe database operations
 
 ## Deployment
 
@@ -127,12 +172,8 @@ scripts/                # Database utilities
 3. Deploy automatically on push to main branch
 
 ### Environment Variables
-```
-NEXT_PUBLIC_APPWRITE_ENDPOINT=your_appwrite_endpoint
-NEXT_PUBLIC_APPWRITE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_APPWRITE_DATABASE_ID=your_database_id
-NEXT_PUBLIC_APPWRITE_QUESTIONS_COLLECTION_ID=questions_collection_id
-NEXT_PUBLIC_APPWRITE_FEEDBACK_COLLECTION_ID=feedback_collection_id
+```env
+DATABASE_URL=your_neon_database_connection_string
 ```
 
 ## License

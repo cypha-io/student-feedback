@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
+import { dbHelpers, COLLECTIONS } from '@/lib/neon';
 import { Teacher, Student, Feedback, Response } from '@/types/database';
 import { Chart } from 'react-google-charts';
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { dbHelpers, COLLECTIONS } from '@/lib/appwrite';
+import { dbHelpers, COLLECTIONS } from '@/lib/mock-db';
 import { Teacher, Subject, Class } from '@/types/database';
 import styles from './feedback.module.css';
 
@@ -384,7 +384,7 @@ export default function StudentFeedback() {
                       <option value="">Select your class...</option>
                       {classes.map((cls) => (
                         <option key={cls.$id} value={cls.$id}>
-                          {cls.name}
+                          {cls.name} - {cls.year}
                         </option>
                       ))}
                     </select>

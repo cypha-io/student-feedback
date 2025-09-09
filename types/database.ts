@@ -4,7 +4,6 @@ export interface Subject {
   $createdAt?: string;
   $updatedAt?: string;
   name: string;
-  code: string;
   department: string;
 }
 
@@ -33,22 +32,13 @@ export interface Student {
   phone?: string;
 }
 
-export interface Subject {
-  $id?: string;
-  $createdAt?: string;
-  $updatedAt?: string;
-  name: string;
-  code: string;
-  department: string;
-//   credits: number;
-}
-
 export interface Class {
   $id?: string;
   $createdAt?: string;
   $updatedAt?: string;
   name: string;
   grade: string;
+  year: string;
   capacity: number;
 }
 
