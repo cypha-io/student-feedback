@@ -34,13 +34,11 @@ export default function Settings() {
   const [classForm, setClassForm] = useState<Omit<ClassType, '$id' | '$createdAt' | '$updatedAt'>>({ 
     name: '', 
     year: 1,
-    section: '',
     capacity: 0 
   });
-  const [departmentForm, setDepartmentForm] = useState<Omit<DepartmentType, '$id' | '$createdAt' | '$updatedAt'>>({ 
+  const [departmentForm, setDepartmentForm] = useState<Omit<DepartmentType, 'id' | 'createdAt' | 'updatedAt'>>({ 
     name: '', 
     head: '', 
-    description: '' 
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -149,8 +147,8 @@ export default function Settings() {
   const handleAddClass = async () => {
     try {
       // Validate required fields
-      if (!classForm.name || !classForm.section || classForm.year < 1 || classForm.year > 3) {
-        alert('Please fill in all required fields (Name, Section) and ensure Year is between 1-3');
+      if (!classForm.name || classForm.year < 1) {
+        alert('Please fill in all required fields (Name, Year) and ensure Year is valid');
         return;
       }
       
@@ -210,13 +208,13 @@ export default function Settings() {
   };
 
   const resetClassForm = () => {
-    setClassForm({ name: '', year: 1, section: '', capacity: 0 });
+    setClassForm({ name: '', year: 1, capacity: 0 });
     setShowClassModal(false);
     setEditingId(null);
   };
 
   const resetDepartmentForm = () => {
-    setDepartmentForm({ name: '', head: '', description: '' });
+    setDepartmentForm({ name: '', head: '' });
     setShowDepartmentModal(false);
     setEditingId(null);
   };
@@ -241,11 +239,11 @@ export default function Settings() {
       setShowSubjectModal(true);
     } else if (type === 'class') {
       const cls = item as ClassType;
-      setClassForm({ name: cls.name, year: cls.year, section: cls.section, capacity: cls.capacity });
+      setClassForm({ name: cls.name, year: cls.year, capacity: cls.capacity });
       setShowClassModal(true);
     } else if (type === 'department') {
       const dept = item as DepartmentType;
-      setDepartmentForm({ name: dept.name, head: dept.head, description: dept.description });
+      setDepartmentForm({ name: dept.name, head: dept.head });
       setShowDepartmentModal(true);
     }
   };
@@ -508,9 +506,6 @@ export default function Settings() {
                           Year
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Section
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           Capacity
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -539,9 +534,6 @@ export default function Settings() {
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               Year {cls.year}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                              {cls.section}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               {cls.capacity}
@@ -597,9 +589,6 @@ export default function Settings() {
                           Head
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Description
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           Actions
                         </th>
                       </tr>
@@ -607,27 +596,24 @@ export default function Settings() {
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                       {loading ? (
                         <tr>
-                          <td colSpan={4} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                          <td colSpan={3} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                             Loading departments...
                           </td>
                         </tr>
                       ) : departments.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                          <td colSpan={3} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                             No departments found. Add your first department!
                           </td>
                         </tr>
                       ) : (
                         departments.map((dept) => (
-                          <tr key={dept.$id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <tr key={dept.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                               {dept.name}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               {dept.head}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                              {dept.description}
                             </td>
                             <td className="px-6 py-4 text-sm space-x-2">
                               <button
@@ -637,7 +623,7 @@ export default function Settings() {
                                 Edit
                               </button>
                               <button
-                                onClick={() => handleDelete('department', dept.$id!)}
+                                onClick={() => handleDelete('department', dept.id!)}
                                 className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                               >
                                 Delete
@@ -752,19 +738,6 @@ export default function Settings() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="class-section" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Section
-                  </label>
-                  <input
-                    id="class-section"
-                    type="text"
-                    placeholder="Enter section (e.g., Arts, Science)"
-                    value={classForm.section}
-                    onChange={(e) => setClassForm({...classForm, section: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-                <div>
                   <label htmlFor="class-capacity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Capacity
                   </label>
@@ -829,19 +802,6 @@ export default function Settings() {
                     placeholder="Enter department head name"
                     value={departmentForm.head}
                     onChange={(e) => setDepartmentForm({...departmentForm, head: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="department-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    id="department-description"
-                    placeholder="Enter department description"
-                    value={departmentForm.description}
-                    onChange={(e) => setDepartmentForm({...departmentForm, description: e.target.value})}
-                    rows={3}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   />
                 </div>

@@ -158,6 +158,13 @@ export default function TeacherEvaluationReports() {
     : teacherReports.filter(r => r.teacher.$id === selectedTeacher);
 
   const handlePrint = () => {
+    // Get the report content element
+    const reportContent = document.getElementById('report-content');
+    if (!reportContent) {
+      alert('No report content found to print');
+      return;
+    }
+
     // Create a new window for printing with system watermark
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -167,7 +174,7 @@ export default function TeacherEvaluationReports() {
       ? 'All Teachers Evaluation Report' 
       : `${teachers.find(t => t.$id === selectedTeacher)?.name} Evaluation Report`;
 
-    // Generate print-friendly HTML with watermark
+    // Generate print-friendly HTML with watermark (only the data)
     const printHTML = generatePrintHTML(filteredReports, reportTitle, currentDate);
     
     printWindow.document.open();
@@ -180,14 +187,19 @@ export default function TeacherEvaluationReports() {
   };
 
   const handleDownload = () => {
-    // For now, we'll use the browser's print to PDF functionality
-    // In a production environment, you'd want to use a proper PDF library
+    // For PDF download, we'll use the same approach but with a different title
+    const reportContent = document.getElementById('report-content');
+    if (!reportContent) {
+      alert('No report content found to download');
+      return;
+    }
+
     const currentDate = new Date().toLocaleDateString();
     const reportTitle = selectedTeacher === 'all' 
       ? 'All_Teachers_Evaluation_Report' 
       : `${teachers.find(t => t.$id === selectedTeacher)?.name}_Evaluation_Report`;
     
-    // Create a temporary link to trigger download
+    // Create a temporary window for PDF generation
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -200,7 +212,12 @@ export default function TeacherEvaluationReports() {
     // Set the document title for PDF download
     printWindow.document.title = `${reportTitle}_${currentDate.replace(/\//g, '-')}`;
     printWindow.focus();
-    printWindow.print();
+    
+    // Show instruction to user
+    setTimeout(() => {
+      alert('Please use Ctrl+P (Cmd+P on Mac) and select "Save as PDF" as the destination.');
+      printWindow.print();
+    }, 500);
   };
 
   const generatePrintHTML = (reports: TeacherReport[], title: string, date: string) => {
@@ -460,7 +477,7 @@ export default function TeacherEvaluationReports() {
         </div>
 
         {/* Teacher Reports */}
-        <div className="space-y-6">
+        <div id="report-content" className="space-y-6">
           {filteredReports.map((report) => (
             <div key={report.teacher.$id} className={`rounded-lg shadow-lg overflow-hidden ${getPerformanceBg(report.overallPercentage)}`}>
               {/* Teacher Header */}

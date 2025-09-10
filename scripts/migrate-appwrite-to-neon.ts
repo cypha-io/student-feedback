@@ -86,10 +86,14 @@ function transformSubjectData(appwriteSubject: AppwriteDocument) {
 }
 
 function transformClassData(appwriteClass: AppwriteDocument) {
+  const yearValue = appwriteClass.year;
+  let year = 1; // Default to 1
+  if (yearValue && !isNaN(Number(yearValue))) {
+    year = Number(yearValue);
+  }
   return {
     name: String(appwriteClass.name || ''),
-    grade: String(appwriteClass.grade || appwriteClass.name || ''),
-    year: String(appwriteClass.year || '2024-2025'),
+    year: year,
     capacity: Number(appwriteClass.capacity) || 40,
     createdAt: new Date(appwriteClass.$createdAt),
     updatedAt: new Date(appwriteClass.$updatedAt),
@@ -99,9 +103,7 @@ function transformClassData(appwriteClass: AppwriteDocument) {
 function transformDepartmentData(appwriteDept: AppwriteDocument) {
   return {
     name: String(appwriteDept.name || ''),
-    code: String(appwriteDept.code || ''),
     head: String(appwriteDept.head || ''),
-    description: String(appwriteDept.description || ''),
     createdAt: new Date(appwriteDept.$createdAt),
     updatedAt: new Date(appwriteDept.$updatedAt),
   };
@@ -115,7 +117,7 @@ function transformTeacherData(appwriteTeacher: AppwriteDocument) {
     class: String(appwriteTeacher.class || ''),
     email: String(appwriteTeacher.email || ''),
     phone: String(appwriteTeacher.phone || ''),
-    subject: String(appwriteTeacher.subject || ''),
+    subjects: Array.isArray(appwriteTeacher.subjects) ? appwriteTeacher.subjects.map(String) : [],
     createdAt: new Date(appwriteTeacher.$createdAt),
     updatedAt: new Date(appwriteTeacher.$updatedAt),
   };
@@ -155,7 +157,7 @@ function transformQuestionData(appwriteQuestion: AppwriteDocument) {
     order: Number(appwriteQuestion.order) || 0,
     section: String(appwriteQuestion.section || ''),
     sectionTitle: String(appwriteQuestion.sectionTitle || appwriteQuestion.section || ''),
-    questionNumber: Number(appwriteQuestion.questionNumber) || Number(appwriteQuestion.order) || 1,
+    questionNumber: Number(appwriteQuestion.questionNumber ?? appwriteQuestion.order ?? 1),
     maxScore: Number(appwriteQuestion.maxScore) || 5,
     createdAt: new Date(appwriteQuestion.$createdAt),
     updatedAt: new Date(appwriteQuestion.$updatedAt),
@@ -164,10 +166,6 @@ function transformQuestionData(appwriteQuestion: AppwriteDocument) {
 
 function transformFeedbackData(appwriteFeedback: AppwriteDocument) {
   return {
-    studentId: String(appwriteFeedback.studentId || ''),
-    teacherId: String(appwriteFeedback.teacherId || ''),
-    subjectId: String(appwriteFeedback.subjectId || ''),
-    classId: String(appwriteFeedback.classId || ''),
     semester: String(appwriteFeedback.semester || ''),
     academicYear: String(appwriteFeedback.academicYear || ''),
     status: String(appwriteFeedback.status || 'pending'),
@@ -180,11 +178,8 @@ function transformFeedbackData(appwriteFeedback: AppwriteDocument) {
 
 function transformResponseData(appwriteResponse: AppwriteDocument) {
   return {
-    feedbackId: String(appwriteResponse.feedbackId || ''),
-    questionId: String(appwriteResponse.questionId || ''),
     answer: String(appwriteResponse.answer || ''),
     type: String(appwriteResponse.type || 'rating'),
-    teacherId: appwriteResponse.teacherId ? String(appwriteResponse.teacherId) : null,
     createdAt: new Date(appwriteResponse.$createdAt),
     updatedAt: new Date(appwriteResponse.$updatedAt),
   };
@@ -211,6 +206,37 @@ async function migrateData() {
     return;
   }
 
+  // Create maps to hold Appwrite ID -> Neon UUID mappings
+  const idMaps = {
+    departments: new Map<string, string>(),
+    subjects: new Map<string, string>(),
+    classes: new Map<string, string>(),
+    teachers: new Map<string, string>(),
+    students: new Map<string, string>(),
+    questions: new Map<string, string>(),
+    feedbacks: new Map<string, string>(),
+  };
+
+  // Clear all tables before migration
+  console.log('\n🗑️ Clearing all Neon database tables...');
+  try {
+    // Delete in reverse order of creation due to foreign key constraints
+    await db.delete(responses);
+    await db.delete(feedbacks);
+    await db.delete(questions);
+    await db.delete(houses);
+    await db.delete(students);
+    await db.delete(teachers);
+    await db.delete(classes);
+    await db.delete(subjects);
+    await db.delete(departments);
+    console.log('✅ All tables cleared successfully');
+  } catch (error) {
+    console.error('❌ Error clearing tables:', error);
+    // If clearing fails, it's unsafe to proceed with migration
+    return;
+  }
+
   // Migrate each collection
   console.log('\n📦 Starting data migration...\n');
 
@@ -220,10 +246,18 @@ async function migrateData() {
     const appwriteDepartments = await fetchAllFromCollection(APPWRITE_COLLECTIONS.DEPARTMENTS);
     if (appwriteDepartments.length > 0) {
       for (const dept of appwriteDepartments) {
-        const transformed = transformDepartmentData(dept);
-        await db.insert(departments).values(transformed);
+        try {
+          const transformed = transformDepartmentData(dept);
+          const [newDept] = await db.insert(departments).values(transformed).returning({ newId: departments.id });
+          if (newDept) {
+            idMaps.departments.set(dept.$id, newDept.newId);
+          }
+        } catch (e: unknown) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((e as any).cause?.code !== '23505') console.error('Error inserting department:', e);
+        }
       }
-      console.log(`✅ Migrated ${appwriteDepartments.length} departments`);
+      console.log(`✅ Migrated ${idMaps.departments.size}/${appwriteDepartments.length} departments`);
     } else {
       console.log('ℹ️ No departments found in Appwrite');
     }
@@ -237,10 +271,19 @@ async function migrateData() {
     const appwriteSubjects = await fetchAllFromCollection(APPWRITE_COLLECTIONS.SUBJECTS);
     if (appwriteSubjects.length > 0) {
       for (const subject of appwriteSubjects) {
-        const transformed = transformSubjectData(subject);
-        await db.insert(subjects).values(transformed);
+        try {
+          const transformed = transformSubjectData(subject);
+          const [newSubject] = await db.insert(subjects).values(transformed).returning({ newId: subjects.id });
+          if (newSubject) {
+            // Use Appwrite's $id for mapping
+            idMaps.subjects.set(subject.$id, newSubject.newId);
+          }
+        } catch (e: unknown) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((e as any).cause?.code !== '23505') console.error('Error inserting subject:', e);
+        }
       }
-      console.log(`✅ Migrated ${appwriteSubjects.length} subjects (removed code fields)`);
+      console.log(`✅ Migrated ${idMaps.subjects.size}/${appwriteSubjects.length} subjects (removed code fields)`);
     } else {
       console.log('ℹ️ No subjects found in Appwrite');
     }
@@ -254,10 +297,18 @@ async function migrateData() {
     const appwriteClasses = await fetchAllFromCollection(APPWRITE_COLLECTIONS.CLASSES);
     if (appwriteClasses.length > 0) {
       for (const cls of appwriteClasses) {
-        const transformed = transformClassData(cls);
-        await db.insert(classes).values(transformed);
+        try {
+          const transformed = transformClassData(cls);
+          const [newClass] = await db.insert(classes).values(transformed).returning({ newId: classes.id });
+          if (newClass) {
+            idMaps.classes.set(cls.$id, newClass.newId);
+          }
+        } catch (e: unknown) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((e as any).cause?.code !== '23505') console.error('Error inserting class:', e);
+        }
       }
-      console.log(`✅ Migrated ${appwriteClasses.length} classes (added year fields)`);
+      console.log(`✅ Migrated ${idMaps.classes.size}/${appwriteClasses.length} classes (added year fields)`);
     } else {
       console.log('ℹ️ No classes found in Appwrite');
     }
@@ -271,10 +322,18 @@ async function migrateData() {
     const appwriteTeachers = await fetchAllFromCollection(APPWRITE_COLLECTIONS.TEACHERS);
     if (appwriteTeachers.length > 0) {
       for (const teacher of appwriteTeachers) {
-        const transformed = transformTeacherData(teacher);
-        await db.insert(teachers).values(transformed);
+        try {
+          const transformed = transformTeacherData(teacher);
+          const [newTeacher] = await db.insert(teachers).values(transformed).returning({ newId: teachers.id });
+          if (newTeacher) {
+            idMaps.teachers.set(teacher.$id, newTeacher.newId);
+          }
+        } catch (e: unknown) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((e as any).cause?.code !== '23505') console.error('Error inserting teacher:', e);
+        }
       }
-      console.log(`✅ Migrated ${appwriteTeachers.length} teachers`);
+      console.log(`✅ Migrated ${idMaps.teachers.size}/${appwriteTeachers.length} teachers`);
     } else {
       console.log('ℹ️ No teachers found in Appwrite');
     }
@@ -288,10 +347,22 @@ async function migrateData() {
     const appwriteStudents = await fetchAllFromCollection(APPWRITE_COLLECTIONS.STUDENTS);
     if (appwriteStudents.length > 0) {
       for (const student of appwriteStudents) {
-        const transformed = transformStudentData(student);
-        await db.insert(students).values(transformed);
+        try {
+          const transformed = transformStudentData(student);
+          const [newStudent] = await db.insert(students).values(transformed).returning({ newId: students.id });
+          if (newStudent) {
+            // Use the unique studentId field for mapping, not Appwrite's $id
+            const studentIdKey = String(student.studentId || '');
+            if (studentIdKey) {
+              idMaps.students.set(studentIdKey, newStudent.newId);
+            }
+          }
+        } catch (e: unknown) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((e as any).cause?.code !== '23505') console.error('Error inserting student:', e);
+        }
       }
-      console.log(`✅ Migrated ${appwriteStudents.length} students`);
+      console.log(`✅ Migrated ${idMaps.students.size}/${appwriteStudents.length} students`);
     } else {
       console.log('ℹ️ No students found in Appwrite');
     }
@@ -322,8 +393,26 @@ async function migrateData() {
     const appwriteQuestions = await fetchAllFromCollection(APPWRITE_COLLECTIONS.QUESTIONS);
     if (appwriteQuestions.length > 0) {
       for (const question of appwriteQuestions) {
-        const transformed = transformQuestionData(question);
-        await db.insert(questions).values(transformed);
+        try {
+          const transformed = transformQuestionData(question);
+          const [newQuestion] = await db.insert(questions).values(transformed).returning({ newId: questions.id });
+          if (newQuestion) {
+            // The response refers to the question by a composite key like 'A-0'.
+            // This key is built from the question's 'section' and a zero-based index.
+            const section = String(question.section || '');
+            const qNumber = Number(question.questionNumber ?? question.order ?? 1);
+            // The key in the response is 0-indexed, so we subtract 1.
+            const questionKey = `${section}-${qNumber - 1}`;
+            
+            console.log(`[DEBUG] Mapping question. Appwrite $id: ${question.$id}, section: ${question.section}, qNumber: ${qNumber}, Generated Key: '${questionKey}'`);
+            
+            idMaps.questions.set(questionKey, newQuestion.newId);
+            idMaps.questions.set(question.$id, newQuestion.newId); // Also map by $id as a fallback.
+          }
+        } catch (e: unknown) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((e as any).cause?.code !== '23505') console.error('Error inserting question:', e);
+        }
       }
       console.log(`✅ Migrated ${appwriteQuestions.length} questions`);
     } else {
@@ -339,10 +428,39 @@ async function migrateData() {
     const appwriteFeedbacks = await fetchAllFromCollection(APPWRITE_COLLECTIONS.FEEDBACKS);
     if (appwriteFeedbacks.length > 0) {
       for (const feedback of appwriteFeedbacks) {
-        const transformed = transformFeedbackData(feedback);
-        await db.insert(feedbacks).values(transformed);
+        try {
+          // Remap foreign keys
+          const studentNeonId = idMaps.students.get(String(feedback.studentId || ''));
+          const teacherNeonId = idMaps.teachers.get(String(feedback.teacherId || ''));
+          const subjectNeonId = idMaps.subjects.get(String(feedback.subjectId || ''));
+          const classNeonId = idMaps.classes.get(String(feedback.classId || ''));
+
+          if (!teacherNeonId || !subjectNeonId || !classNeonId) {
+            console.warn(`⚠️ Skipping feedback ${feedback.$id} due to missing teacher, subject, or class mapping.`);
+            continue;
+          }
+          if (!studentNeonId) {
+            console.warn(`⚠️ Feedback ${feedback.$id} is missing a valid student mapping. Proceeding with null.`);
+          }
+
+          const transformed = {
+            ...transformFeedbackData(feedback),
+            studentId: studentNeonId || null,
+            teacherId: teacherNeonId,
+            subjectId: subjectNeonId,
+            classId: classNeonId,
+          };
+
+          const [newFeedback] = await db.insert(feedbacks).values(transformed).returning({ newId: feedbacks.id });
+          if (newFeedback) {
+            idMaps.feedbacks.set(feedback.$id, newFeedback.newId);
+          }
+        } catch (e: unknown) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((e as any).cause?.code !== '23505') console.error('Error inserting feedback:', e);
+        }
       }
-      console.log(`✅ Migrated ${appwriteFeedbacks.length} feedbacks`);
+      console.log(`✅ Migrated ${idMaps.feedbacks.size}/${appwriteFeedbacks.length} feedbacks`);
     } else {
       console.log('ℹ️ No feedbacks found in Appwrite');
     }
@@ -356,10 +474,37 @@ async function migrateData() {
     const appwriteResponses = await fetchAllFromCollection(APPWRITE_COLLECTIONS.RESPONSES);
     if (appwriteResponses.length > 0) {
       for (const response of appwriteResponses) {
-        const transformed = transformResponseData(response);
-        await db.insert(responses).values(transformed);
+        try {
+          // Remap foreign keys
+          const feedbackNeonId = idMaps.feedbacks.get(String(response.feedbackId || ''));
+          const questionNeonId = idMaps.questions.get(String(response.questionId || ''));
+          const teacherNeonId = response.teacherId ? idMaps.teachers.get(String(response.teacherId)) : null;
+
+          if (!feedbackNeonId) {
+            console.warn(`[DEBUG] Failed to find feedback for response ${response.$id}. feedbackId: ${response.feedbackId}`);
+          }
+          if (!questionNeonId) {
+            console.warn(`[DEBUG] Failed to find question for response ${response.$id}. questionId from Appwrite: '${response.questionId}'. Looked for key: '${String(response.questionId || '')}'`);
+          }
+
+          if (!feedbackNeonId || !questionNeonId) {
+            console.warn(`⚠️ Skipping response ${response.$id} due to missing foreign key mapping. Tried to find question with key: ${response.questionId}`);
+            continue;
+          }
+
+          const transformed = {
+            ...transformResponseData(response),
+            feedbackId: feedbackNeonId,
+            questionId: questionNeonId,
+            teacherId: teacherNeonId,
+          };
+          await db.insert(responses).values(transformed);
+        } catch (e: unknown) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((e as any).cause?.code !== '23505') console.error('Error inserting response:', e);
+        }
       }
-      console.log(`✅ Migrated ${appwriteResponses.length} responses`);
+      console.log(`✅ Migrated responses for ${idMaps.feedbacks.size} feedbacks`);
     } else {
       console.log('ℹ️ No responses found in Appwrite');
     }

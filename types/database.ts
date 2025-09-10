@@ -1,63 +1,58 @@
 // Types for database entities
 export interface Subject {
-  $id?: string;
-  $createdAt?: string;
-  $updatedAt?: string;
+  id: string;
   name: string;
   department: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Teacher {
-  $id?: string;
-  $createdAt?: string;
-  $updatedAt?: string;
+  id: string;
   name: string;
   employeeId: string;
-  department: string;
-  class: string;
+  departmentId: string;
+  classId: string;
   subjects: string[];
   email: string;
   phone: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Student {
-  $id?: string;
-  $createdAt?: string;
-  $updatedAt?: string;
+  id: string;
   name: string;
   studentId: string;
-  class: string;
+  classId: string;
   section: string;
-  email: string;
+  house: string;
   phone?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Class {
-  $id?: string;
-  $createdAt?: string;
-  $updatedAt?: string;
+  id: string;
   name: string;
   year: number;
-  section: string;
   capacity: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface House {
-  $id?: string;
-  $createdAt?: string;
-  $updatedAt?: string;
+  id: string;
   name: string;
   color: string;
-  description: string;
 }
 
 export interface Department {
-  $id?: string;
-  $createdAt?: string;
-  $updatedAt?: string;
+  id: string;
   name: string;
   head: string;
-  description: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Question {

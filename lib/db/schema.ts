@@ -6,8 +6,8 @@ export const teachers = pgTable('teachers', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   employeeId: text('employee_id').notNull().unique(),
-  department: text('department').notNull(),
-  class: text('class').notNull(),
+  departmentId: uuid('department_id').references(() => departments.id),
+  classId: uuid('class_id').references(() => classes.id),
   subjects: text('subjects').array().notNull().default([]),
   email: text('email').notNull(),
   phone: text('phone'),
@@ -22,6 +22,7 @@ export const students = pgTable('students', {
   studentId: text('student_id').notNull().unique(),
   class: text('class').notNull(),
   section: text('section').notNull(),
+  house: text('house').notNull(),
   email: text('email').notNull(),
   phone: text('phone'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -42,7 +43,6 @@ export const classes = pgTable('classes', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   year: integer('year').notNull(), // Year 1, 2, or 3
-  section: text('section').notNull(), // Arts, Science, etc.
   capacity: integer('capacity').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -63,7 +63,6 @@ export const departments = pgTable('departments', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   head: text('head').notNull(),
-  description: text('description'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -88,7 +87,7 @@ export const questions = pgTable('questions', {
 // Feedback table
 export const feedbacks = pgTable('feedbacks', {
   id: uuid('id').defaultRandom().primaryKey(),
-  studentId: uuid('student_id').notNull(),
+  studentId: uuid('student_id'),
   teacherId: uuid('teacher_id').notNull(),
   subjectId: uuid('subject_id').notNull(),
   classId: uuid('class_id').notNull(),

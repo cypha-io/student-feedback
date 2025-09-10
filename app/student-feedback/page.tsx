@@ -2,97 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { dbHelpers, COLLECTIONS } from '@/lib/mock-db';
 import { Teacher, Subject, Class } from '@/types/database';
 import styles from './feedback.module.css';
-
-// Enhanced feedback sections with modern structure
-const FEEDBACK_SECTIONS = {
-  A: {
-    title: 'Student-Teacher Relationship',
-    icon: '🤝',
-    description: 'Building positive connections and rapport with students',
-    color: 'from-pink-500 to-rose-500',
-    questions: [
-      'Teacher creates positive rapport with students & makes learning a fun experience',
-      'Fosters Social and Emotional Learning by promoting skills like empathy, self-awareness, and relationship building (SEL)',
-      'Identifies students learning challenges and helps them individually (differentiated instruction) or refers them for help when necessary'
-    ]
-  },
-  B: {
-    title: 'Cooperation & Team Work',
-    icon: '👥',
-    description: 'Promoting collaboration and inclusive learning environment',
-    color: 'from-blue-500 to-cyan-500',
-    questions: [
-      'Lets students see themselves as a team by giving group work and assigning brilliant students to help the weak',
-      'Ensures gender equality in all teaching and learning activities in and out of the classroom (GESI)',
-      'Teacher accommodates and supports students with special educational needs to ensure inclusive learning (SEN)'
-    ]
-  },
-  C: {
-    title: 'Active Learning Methods',
-    icon: '🎯',
-    description: 'Engaging students through varied and interactive teaching',
-    color: 'from-green-500 to-emerald-500',
-    questions: [
-      'Uses different teaching methods & gives more practical exercises or assignments',
-      'Teacher effectively incorporates technology and digital tools into lessons to enhance student learning (ICT)',
-      'Uses field trips and problem-solving methods in teaching'
-    ]
-  },
-  D: {
-    title: 'Subject Mastery',
-    icon: '🎓',
-    description: 'Demonstrating expertise and knowledge in teaching field',
-    color: 'from-purple-500 to-violet-500',
-    questions: [
-      'Explains lessons to students\' understanding clearly',
-      'Gives appropriate and relevant examples',
-      'Welcomes and answers students\' questions effectively'
-    ]
-  },
-  E: {
-    title: 'Feedback & Recognition',
-    icon: '💬',
-    description: 'Providing timely feedback and appropriate rewards',
-    color: 'from-orange-500 to-amber-500',
-    questions: [
-      'Marks exercises, assignments & tests promptly',
-      'Varies feedback used in class (verbal, actions, student involvement like clapping)'
-    ]
-  },
-  F: {
-    title: 'Time Management',
-    icon: '⏰',
-    description: 'Effective use of class time and punctuality',
-    color: 'from-indigo-500 to-blue-500',
-    questions: [
-      'Punctual to class and prepared',
-      'Uses lesson time appropriately and efficiently'
-    ]
-  },
-  G: {
-    title: 'High Expectations',
-    icon: '🚀',
-    description: 'Challenging students to reach their full potential',
-    color: 'from-red-500 to-pink-500',
-    questions: [
-      'Challenges students to get out of their comfort zone with appropriately difficult exercises and texts',
-      'Checks to ensure students have the right notes and materials'
-    ]
-  },
-  H: {
-    title: 'Classroom Management',
-    icon: '👨‍🏫',
-    description: 'Maintaining order, respect, and positive learning environment',
-    color: 'from-teal-500 to-cyan-500',
-    questions: [
-      'Teacher has the respect and attention of students',
-      'Uses appropriate means to ensure orderliness in class'
-    ]
-  }
-};
+import { FEEDBACK_SECTIONS } from '@/lib/feedback-questions';
 
 const RATING_OPTIONS = [
   { value: 5, label: 'Always', emoji: '🌟', color: 'bg-green-500 hover:bg-green-600', description: 'This happens all the time' },
@@ -107,23 +19,23 @@ export default function StudentFeedback() {
   const [currentStep, setCurrentStep] = useState(1);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [siteTitle, setSiteTitle] = useState('Student Feedback Portal');
-  
+
   // Data fetching states
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
-  
+
   // Form data states
   const [studentInfo, setStudentInfo] = useState({
     name: '',
     studentId: '',
     class: ''
   });
-  
+
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [responses, setResponses] = useState<{[key: string]: number}>({});
-  
+
   const sectionKeys = Object.keys(FEEDBACK_SECTIONS);
   const totalSections = sectionKeys.length;
 
@@ -146,14 +58,14 @@ export default function StudentFeedback() {
   const fetchData = async () => {
     try {
       const [teachersRes, subjectsRes, classesRes] = await Promise.all([
-        dbHelpers.getAll(COLLECTIONS.TEACHERS),
-        dbHelpers.getAll(COLLECTIONS.SUBJECTS),
-        dbHelpers.getAll(COLLECTIONS.CLASSES)
+        fetch('/api/teachers'),
+        fetch('/api/subjects'),
+        fetch('/api/classes')
       ]);
-      
-      setTeachers(teachersRes.documents as unknown as Teacher[]);
-      setSubjects(subjectsRes.documents as unknown as Subject[]);
-      setClasses(classesRes.documents as unknown as Class[]);
+
+      setTeachers(await teachersRes.json());
+      setSubjects(await subjectsRes.json());
+      setClasses(await classesRes.json());
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -191,7 +103,7 @@ export default function StudentFeedback() {
   const isCurrentSectionComplete = () => {
     const currentSection = getCurrentSection();
     const sectionKey = sectionKeys[currentSectionIndex];
-    
+
     return currentSection.questions.every((_, questionIndex) => {
       const questionKey = `${sectionKey}-${questionIndex}`;
       return responses[questionKey] !== undefined;
@@ -217,9 +129,8 @@ export default function StudentFeedback() {
 
   const handleSubmit = async () => {
     try {
-      const selectedTeacherData = teachers.find(t => t.$id === selectedTeacher);
+      const selectedTeacherData = teachers.find(t => t.id === selectedTeacher);
 
-      // Include only the fields that are actually in the collection schema
       const feedbackData = {
         studentId: studentInfo.studentId,
         teacherId: selectedTeacher,
@@ -230,35 +141,22 @@ export default function StudentFeedback() {
         submittedAt: new Date().toISOString()
       };
 
-      console.log('🚀 Attempting to create feedback with teacherName included:', feedbackData);
-      
-      const feedback = await dbHelpers.create(COLLECTIONS.FEEDBACKS, feedbackData);
-      
-      console.log('✅ Feedback created successfully:', feedback);
+      const responsesData = Object.entries(responses).map(([questionKey, answer]) => ({
+        questionId: questionKey,
+        answer: answer.toString(),
+        type: 'rating'
+      }));
 
-      // Create response records for each question
-      for (const [sectionKey, sectionData] of Object.entries(FEEDBACK_SECTIONS)) {
-        for (let questionIndex = 0; questionIndex < sectionData.questions.length; questionIndex++) {
-          const questionKey = `${sectionKey}-${questionIndex}`;
-          const answer = responses[questionKey];
-          
-          if (answer) {
-            const responseData = {
-              feedbackId: feedback.$id,
-              questionId: questionKey,
-              answer: answer.toString(),
-              type: 'rating'
-            };
-            
-            try {
-              await dbHelpers.create(COLLECTIONS.RESPONSES, responseData);
-              console.log(`✅ Response created for ${questionKey}`);
-            } catch (responseError) {
-              console.warn(`Failed to create response for ${questionKey}:`, responseError);
-              // Continue with other responses even if one fails
-            }
-          }
-        }
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ feedbackData, responsesData }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to submit feedback');
       }
 
       setCurrentStep(4);
@@ -383,8 +281,8 @@ export default function StudentFeedback() {
                     >
                       <option value="">Select your class...</option>
                       {classes.map((cls) => (
-                        <option key={cls.$id} value={cls.$id}>
-                          {cls.name} - Year {cls.year} {cls.section}
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name} - Year {cls.year}
                         </option>
                       ))}
                     </select>
@@ -427,7 +325,7 @@ export default function StudentFeedback() {
                     >
                       <option value="">Choose a teacher...</option>
                       {teachers.map((teacher) => (
-                        <option key={teacher.$id} value={teacher.$id}>
+                        <option key={teacher.id} value={teacher.id}>
                           {teacher.name} - {teacher.department}
                         </option>
                       ))}
@@ -447,7 +345,7 @@ export default function StudentFeedback() {
                     >
                       <option value="">Choose a subject...</option>
                       {subjects.map((subject) => (
-                        <option key={subject.$id} value={subject.$id}>
+                        <option key={subject.id} value={subject.id}>
                           {subject.name}
                         </option>
                       ))}
@@ -568,12 +466,12 @@ export default function StudentFeedback() {
                 <div className="bg-green-50 p-6 rounded-xl border border-green-200 mb-8">
                   <h3 className="font-bold text-gray-900 mb-4">📋 Evaluation Summary</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
-                    <p><span className="font-semibold">Teacher:</span> {teachers.find(t => t.$id === selectedTeacher)?.name}</p>
-                    <p><span className="font-semibold">Subject:</span> {subjects.find(s => s.$id === selectedSubject)?.name}</p>
+                    <p><span className="font-semibold">Teacher:</span> {teachers.find(t => t.id === selectedTeacher)?.name}</p>
+                    <p><span className="font-semibold">Subject:</span> {subjects.find(s => s.id === selectedSubject)?.name}</p>
                     <p><span className="font-semibold">Student:</span> {studentInfo.name}</p>
                     <p><span className="font-semibold">Class:</span> {(() => {
-                      const cls = classes.find(c => c.$id === studentInfo.class);
-                      return cls ? `${cls.name} - Year ${cls.year} ${cls.section}` : '';
+                      const cls = classes.find(c => c.id === studentInfo.class);
+                      return cls ? `${cls.name} - Year ${cls.year}` : '';
                     })()}</p>
                   </div>
                 </div>
