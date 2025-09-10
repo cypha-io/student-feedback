@@ -384,7 +384,7 @@ export default function StudentFeedback() {
                       <option value="">Select your class...</option>
                       {classes.map((cls) => (
                         <option key={cls.$id} value={cls.$id}>
-                          {cls.name} - {cls.year}
+                          {cls.name} - Year {cls.year} {cls.section}
                         </option>
                       ))}
                     </select>
@@ -571,7 +571,10 @@ export default function StudentFeedback() {
                     <p><span className="font-semibold">Teacher:</span> {teachers.find(t => t.$id === selectedTeacher)?.name}</p>
                     <p><span className="font-semibold">Subject:</span> {subjects.find(s => s.$id === selectedSubject)?.name}</p>
                     <p><span className="font-semibold">Student:</span> {studentInfo.name}</p>
-                    <p><span className="font-semibold">Class:</span> {classes.find(c => c.$id === studentInfo.class)?.name}</p>
+                    <p><span className="font-semibold">Class:</span> {(() => {
+                      const cls = classes.find(c => c.$id === studentInfo.class);
+                      return cls ? `${cls.name} - Year ${cls.year} ${cls.section}` : '';
+                    })()}</p>
                   </div>
                 </div>
 

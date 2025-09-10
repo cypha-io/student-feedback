@@ -37,12 +37,12 @@ export const subjects = pgTable('subjects', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Classes table (added year field)
+// Classes table (updated to use year 1-3 instead of grade)
 export const classes = pgTable('classes', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
-  grade: text('grade').notNull(),
-  year: text('year').notNull(), // Added year field
+  year: integer('year').notNull(), // Year 1, 2, or 3
+  section: text('section').notNull(), // Arts, Science, etc.
   capacity: integer('capacity').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -58,11 +58,10 @@ export const houses = pgTable('houses', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Departments table
+// Departments table (removed code field)
 export const departments = pgTable('departments', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
-  code: text('code').notNull().unique(),
   head: text('head').notNull(),
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

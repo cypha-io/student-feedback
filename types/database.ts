@@ -37,8 +37,8 @@ export interface Class {
   $createdAt?: string;
   $updatedAt?: string;
   name: string;
-  grade: string;
-  year: string;
+  year: number;
+  section: string;
   capacity: number;
 }
 
@@ -56,7 +56,6 @@ export interface Department {
   $createdAt?: string;
   $updatedAt?: string;
   name: string;
-  code: string;
   head: string;
   description: string;
 }

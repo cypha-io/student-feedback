@@ -33,13 +33,12 @@ export default function Settings() {
   });
   const [classForm, setClassForm] = useState<Omit<ClassType, '$id' | '$createdAt' | '$updatedAt'>>({ 
     name: '', 
-    grade: '', 
-    year: '',
+    year: 1,
+    section: '',
     capacity: 0 
   });
   const [departmentForm, setDepartmentForm] = useState<Omit<DepartmentType, '$id' | '$createdAt' | '$updatedAt'>>({ 
     name: '', 
-    code: '', 
     head: '', 
     description: '' 
   });
@@ -150,8 +149,8 @@ export default function Settings() {
   const handleAddClass = async () => {
     try {
       // Validate required fields
-      if (!classForm.name || !classForm.grade || !classForm.year) {
-        alert('Please fill in all required fields (Name, Grade, Year)');
+      if (!classForm.name || !classForm.section || classForm.year < 1 || classForm.year > 3) {
+        alert('Please fill in all required fields (Name, Section) and ensure Year is between 1-3');
         return;
       }
       
@@ -211,13 +210,13 @@ export default function Settings() {
   };
 
   const resetClassForm = () => {
-    setClassForm({ name: '', grade: '', year: '', capacity: 0 });
+    setClassForm({ name: '', year: 1, section: '', capacity: 0 });
     setShowClassModal(false);
     setEditingId(null);
   };
 
   const resetDepartmentForm = () => {
-    setDepartmentForm({ name: '', code: '', head: '', description: '' });
+    setDepartmentForm({ name: '', head: '', description: '' });
     setShowDepartmentModal(false);
     setEditingId(null);
   };
@@ -242,11 +241,11 @@ export default function Settings() {
       setShowSubjectModal(true);
     } else if (type === 'class') {
       const cls = item as ClassType;
-      setClassForm({ name: cls.name, grade: cls.grade, year: cls.year, capacity: cls.capacity });
+      setClassForm({ name: cls.name, year: cls.year, section: cls.section, capacity: cls.capacity });
       setShowClassModal(true);
     } else if (type === 'department') {
       const dept = item as DepartmentType;
-      setDepartmentForm({ name: dept.name, code: dept.code, head: dept.head, description: dept.description });
+      setDepartmentForm({ name: dept.name, head: dept.head, description: dept.description });
       setShowDepartmentModal(true);
     }
   };
@@ -506,10 +505,10 @@ export default function Settings() {
                           Class Name
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Grade
+                          Year
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Academic Year
+                          Section
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           Capacity
@@ -539,10 +538,10 @@ export default function Settings() {
                               {cls.name}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                              {cls.grade}
+                              Year {cls.year}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                              {cls.year}
+                              {cls.section}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               {cls.capacity}
@@ -595,9 +594,6 @@ export default function Settings() {
                           Department
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Code
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                           Head
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -611,13 +607,13 @@ export default function Settings() {
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                       {loading ? (
                         <tr>
-                          <td colSpan={5} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                          <td colSpan={4} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                             Loading departments...
                           </td>
                         </tr>
                       ) : departments.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                          <td colSpan={4} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                             No departments found. Add your first department!
                           </td>
                         </tr>
@@ -626,9 +622,6 @@ export default function Settings() {
                           <tr key={dept.$id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                               {dept.name}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                              {dept.code}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               {dept.head}
@@ -743,37 +736,33 @@ export default function Settings() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="class-grade" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Grade
-                  </label>
-                  <select
-                    id="class-grade"
-                    value={classForm.grade}
-                    onChange={(e) => setClassForm({...classForm, grade: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="">Select Grade</option>
-                    <option value="Form 1">Form 1</option>
-                    <option value="Form 2">Form 2</option>
-                    <option value="Form 3">Form 3</option>
-                    <option value="Form 4">Form 4</option>
-                  </select>
-                </div>
-                <div>
                   <label htmlFor="class-year" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Academic Year
+                    Year
                   </label>
                   <select
                     id="class-year"
                     value={classForm.year}
-                    onChange={(e) => setClassForm({...classForm, year: e.target.value})}
+                    onChange={(e) => setClassForm({...classForm, year: parseInt(e.target.value)})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="">Select Academic Year</option>
-                    <option value="2024-2025">2024-2025</option>
-                    <option value="2025-2026">2025-2026</option>
-                    <option value="2026-2027">2026-2027</option>
+                    <option value="">Select Year</option>
+                    <option value="1">Year 1</option>
+                    <option value="2">Year 2</option>
+                    <option value="3">Year 3</option>
                   </select>
+                </div>
+                <div>
+                  <label htmlFor="class-section" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Section
+                  </label>
+                  <input
+                    id="class-section"
+                    type="text"
+                    placeholder="Enter section (e.g., Arts, Science)"
+                    value={classForm.section}
+                    onChange={(e) => setClassForm({...classForm, section: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
                 </div>
                 <div>
                   <label htmlFor="class-capacity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -827,19 +816,6 @@ export default function Settings() {
                     placeholder="Enter department name"
                     value={departmentForm.name}
                     onChange={(e) => setDepartmentForm({...departmentForm, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="department-code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Department Code
-                  </label>
-                  <input
-                    id="department-code"
-                    type="text"
-                    placeholder="Enter department code"
-                    value={departmentForm.code}
-                    onChange={(e) => setDepartmentForm({...departmentForm, code: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   />
                 </div>

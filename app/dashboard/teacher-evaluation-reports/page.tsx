@@ -157,6 +157,216 @@ export default function TeacherEvaluationReports() {
     ? teacherReports 
     : teacherReports.filter(r => r.teacher.$id === selectedTeacher);
 
+  const handlePrint = () => {
+    // Create a new window for printing with system watermark
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const currentDate = new Date().toLocaleDateString();
+    const reportTitle = selectedTeacher === 'all' 
+      ? 'All Teachers Evaluation Report' 
+      : `${teachers.find(t => t.$id === selectedTeacher)?.name} Evaluation Report`;
+
+    // Generate print-friendly HTML with watermark
+    const printHTML = generatePrintHTML(filteredReports, reportTitle, currentDate);
+    
+    printWindow.document.open();
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
+    
+    // Trigger print dialog
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  const handleDownload = () => {
+    // For now, we'll use the browser's print to PDF functionality
+    // In a production environment, you'd want to use a proper PDF library
+    const currentDate = new Date().toLocaleDateString();
+    const reportTitle = selectedTeacher === 'all' 
+      ? 'All_Teachers_Evaluation_Report' 
+      : `${teachers.find(t => t.$id === selectedTeacher)?.name}_Evaluation_Report`;
+    
+    // Create a temporary link to trigger download
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const printHTML = generatePrintHTML(filteredReports, reportTitle.replace(/_/g, ' '), currentDate);
+    
+    printWindow.document.open();
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
+    
+    // Set the document title for PDF download
+    printWindow.document.title = `${reportTitle}_${currentDate.replace(/\//g, '-')}`;
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  const generatePrintHTML = (reports: TeacherReport[], title: string, date: string) => {
+    const reportContent = reports.map(report => `
+      <div class="teacher-report">
+        <div class="teacher-header">
+          <h2>${report.teacher.name}</h2>
+          <p>Department: ${report.teacher.department}</p>
+          <p>Employee ID: ${report.teacher.employeeId}</p>
+          <p>Overall Rating: <span class="rating ${getPerformanceClass(report.overallPercentage)}">${getPerformanceLabel(report.overallPercentage)}</span> (${report.overallPercentage.toFixed(1)}%)</p>
+          <p>Total Evaluations: ${report.totalFeedbacks}</p>
+        </div>
+        
+        <div class="sections">
+          <h3>Performance by Section</h3>
+          ${Object.entries(report.sectionScores).map(([section, score]) => `
+            <div class="section-item">
+              <strong>${section}: ${EVALUATION_SECTIONS[section as keyof typeof EVALUATION_SECTIONS]}</strong>
+              <span class="score">${score.percentage.toFixed(1)}% (${score.totalScore}/${score.maxScore})</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            @media print {
+              @page { margin: 0.5in; }
+              body { margin: 0; }
+            }
+            
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='14' fill='%23f0f0f0' text-anchor='middle' transform='rotate(-45 100 100)'%3ESMEI - Cypha Inc.%3C/text%3E%3C/svg%3E");
+              background-repeat: repeat;
+              background-size: 200px 200px;
+              position: relative;
+            }
+            
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #333;
+              padding-bottom: 20px;
+            }
+            
+            .header h1 {
+              margin: 0;
+              color: #2563eb;
+              font-size: 24px;
+            }
+            
+            .header p {
+              margin: 5px 0 0 0;
+              color: #666;
+            }
+            
+            .teacher-report {
+              margin-bottom: 40px;
+              border: 1px solid #ddd;
+              padding: 20px;
+              background: rgba(255, 255, 255, 0.9);
+              border-radius: 8px;
+              page-break-inside: avoid;
+            }
+            
+            .teacher-header {
+              margin-bottom: 20px;
+              border-bottom: 1px solid #eee;
+              padding-bottom: 15px;
+            }
+            
+            .teacher-header h2 {
+              margin: 0 0 10px 0;
+              color: #1f2937;
+            }
+            
+            .teacher-header p {
+              margin: 5px 0;
+              color: #4b5563;
+            }
+            
+            .rating {
+              font-weight: bold;
+              padding: 2px 8px;
+              border-radius: 4px;
+            }
+            
+            .rating.excellent { background: #dcfce7; color: #166534; }
+            .rating.very-good { background: #dbeafe; color: #1e40af; }
+            .rating.good { background: #e0e7ff; color: #3730a3; }
+            .rating.average { background: #fef3c7; color: #92400e; }
+            .rating.weak { background: #fed7aa; color: #c2410c; }
+            .rating.poor { background: #fecaca; color: #dc2626; }
+            .rating.very-poor { background: #fca5a5; color: #991b1b; }
+            
+            .sections h3 {
+              margin: 0 0 15px 0;
+              color: #374151;
+            }
+            
+            .section-item {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+              padding: 8px 0;
+              border-bottom: 1px dotted #d1d5db;
+            }
+            
+            .score {
+              font-weight: bold;
+              color: #059669;
+            }
+            
+            .footer {
+              text-align: center;
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #ddd;
+              color: #666;
+              font-size: 12px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${title}</h1>
+            <p>Generated on: ${date}</p>
+            <p>SMEI - Student-Teacher Evaluation & Management Intelligence</p>
+            <p>Powered by Cypha Inc.</p>
+          </div>
+          
+          ${reportContent}
+          
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} SMEI - Cypha Inc. | Confidential Document</p>
+            <p>This report contains confidential information and is intended for authorized personnel only.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  const getPerformanceClass = (percentage: number) => {
+    const rating = PERFORMANCE_RATINGS.find(r => 
+      percentage >= r.min && percentage <= r.max
+    ) || PERFORMANCE_RATINGS[PERFORMANCE_RATINGS.length - 1];
+    
+    return rating.label.toLowerCase().replace(' ', '-');
+  };
+
+  const getPerformanceLabel = (percentage: number) => {
+    const rating = PERFORMANCE_RATINGS.find(r => 
+      percentage >= r.min && percentage <= r.max
+    ) || PERFORMANCE_RATINGS[PERFORMANCE_RATINGS.length - 1];
+    
+    return rating.label;
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -198,6 +408,29 @@ export default function TeacherEvaluationReports() {
                 </option>
               ))}
             </select>
+            
+            {/* Print and Download buttons */}
+            <button
+              onClick={() => handlePrint()}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2"
+              title="Print Report"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span>Print</span>
+            </button>
+            
+            <button
+              onClick={() => handleDownload()}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2"
+              title="Download Report as PDF"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Download PDF</span>
+            </button>
           </div>
         </div>
 
