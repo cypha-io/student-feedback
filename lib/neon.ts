@@ -286,7 +286,7 @@ export const dbHelpers = {
   // Specific query helpers
   async getTeachersByDepartment(department: string) {
     try {
-      const result = await db.select().from(TABLES.TEACHERS).where(eq(TABLES.TEACHERS.department, department));
+      const result = await db.select().from(TABLES.TEACHERS).where(eq(TABLES.TEACHERS.departmentId, department));
       return { documents: result };
     } catch (error) {
       console.error('Error fetching teachers by department:', error);

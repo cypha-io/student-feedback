@@ -24,7 +24,7 @@ export const dbHelpers = {
   // Specific operations for each table
   async getTeachersByDepartment(department: string) {
     try {
-      const result = await db.select().from(schema.teachers).where(eq(schema.teachers.department, department));
+      const result = await db.select().from(schema.teachers).where(eq(schema.teachers.departmentId, department));
       return { documents: result };
     } catch (error) {
       console.error('Error fetching teachers by department:', error);

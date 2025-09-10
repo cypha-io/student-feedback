@@ -326,7 +326,7 @@ export default function StudentFeedback() {
                       <option value="">Choose a teacher...</option>
                       {teachers.map((teacher) => (
                         <option key={teacher.id} value={teacher.id}>
-                          {teacher.name} - {teacher.department}
+                          {teacher.name} - {teacher.departmentId}
                         </option>
                       ))}
                     </select>

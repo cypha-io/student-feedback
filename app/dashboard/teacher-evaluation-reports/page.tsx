@@ -87,7 +87,7 @@ export default function TeacherEvaluationReports() {
 
   const calculateTeacherReports = (teachers: Teacher[], feedbacks: Feedback[], responses: Response[]): TeacherReport[] => {
     return teachers.map(teacher => {
-      const teacherFeedbacks = feedbacks.filter(f => f.teacherId === teacher.$id);
+      const teacherFeedbacks = feedbacks.filter(f => f.teacherId === teacher.id);
       const teacherResponses = responses.filter(r => 
         teacherFeedbacks.some(f => f.$id === r.feedbackId)
       );
@@ -155,7 +155,7 @@ export default function TeacherEvaluationReports() {
 
   const filteredReports = selectedTeacher === 'all' 
     ? teacherReports 
-    : teacherReports.filter(r => r.teacher.$id === selectedTeacher);
+    : teacherReports.filter(r => r.teacher.id === selectedTeacher);
 
   const handlePrint = () => {
     // Get the report content element
@@ -172,7 +172,7 @@ export default function TeacherEvaluationReports() {
     const currentDate = new Date().toLocaleDateString();
     const reportTitle = selectedTeacher === 'all' 
       ? 'All Teachers Evaluation Report' 
-      : `${teachers.find(t => t.$id === selectedTeacher)?.name} Evaluation Report`;
+      : `${teachers.find(t => t.id === selectedTeacher)?.name} Evaluation Report`;
 
     // Generate print-friendly HTML with watermark (only the data)
     const printHTML = generatePrintHTML(filteredReports, reportTitle, currentDate);
@@ -197,7 +197,7 @@ export default function TeacherEvaluationReports() {
     const currentDate = new Date().toLocaleDateString();
     const reportTitle = selectedTeacher === 'all' 
       ? 'All_Teachers_Evaluation_Report' 
-      : `${teachers.find(t => t.$id === selectedTeacher)?.name}_Evaluation_Report`;
+      : `${teachers.find(t => t.id === selectedTeacher)?.name}_Evaluation_Report`;
     
     // Create a temporary window for PDF generation
     const printWindow = window.open('', '_blank');
@@ -225,7 +225,7 @@ export default function TeacherEvaluationReports() {
       <div class="teacher-report">
         <div class="teacher-header">
           <h2>${report.teacher.name}</h2>
-          <p>Department: ${report.teacher.department}</p>
+          <p>Department: ${report.teacher.departmentId}</p>
           <p>Employee ID: ${report.teacher.employeeId}</p>
           <p>Overall Rating: <span class="rating ${getPerformanceClass(report.overallPercentage)}">${getPerformanceLabel(report.overallPercentage)}</span> (${report.overallPercentage.toFixed(1)}%)</p>
           <p>Total Evaluations: ${report.totalFeedbacks}</p>
@@ -420,8 +420,8 @@ export default function TeacherEvaluationReports() {
             >
               <option value="all">All Teachers</option>
               {teachers.map(teacher => (
-                <option key={teacher.$id} value={teacher.$id}>
-                  {teacher.name} - {teacher.department}
+                <option key={teacher.id} value={teacher.id}>
+                  {teacher.name} - {teacher.departmentId}
                 </option>
               ))}
             </select>
@@ -479,13 +479,13 @@ export default function TeacherEvaluationReports() {
         {/* Teacher Reports */}
         <div id="report-content" className="space-y-6">
           {filteredReports.map((report) => (
-            <div key={report.teacher.$id} className={`rounded-lg shadow-lg overflow-hidden ${getPerformanceBg(report.overallPercentage)}`}>
+            <div key={report.teacher.id} className={`rounded-lg shadow-lg overflow-hidden ${getPerformanceBg(report.overallPercentage)}`}>
               {/* Teacher Header */}
               <div className="bg-white px-6 py-4 border-b">
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">{report.teacher.name}</h2>
-                    <p className="text-gray-600">{report.teacher.department} • {report.teacher.email}</p>
+                    <p className="text-gray-600">{report.teacher.departmentId} • {report.teacher.email}</p>
                   </div>
                   <div className="text-right">
                     <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getPerformanceColor(report.overallPercentage)}`}>
