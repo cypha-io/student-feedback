@@ -16,8 +16,8 @@ export default function ManageTeachers() {
   const [formData, setFormData] = useState<Omit<Teacher, 'id' | 'createdAt' | 'updatedAt'>>({
     name: '',
     employeeId: '',
-    departmentId: '',
-    classId: '',
+    department: '', // Changed from departmentId
+    class: '', // Changed from classId
     subjects: [],
     email: '',
     phone: '',
@@ -116,8 +116,8 @@ export default function ManageTeachers() {
     setFormData({
       name: '',
       employeeId: '',
-      departmentId: '',
-      classId: '',
+      department: '', // Changed from departmentId
+      class: '', // Changed from classId
       subjects: [],
       email: '',
       phone: '',
@@ -131,8 +131,8 @@ export default function ManageTeachers() {
     setFormData({
       name: teacher.name,
       employeeId: teacher.employeeId,
-      departmentId: teacher.departmentId,
-      classId: teacher.classId,
+      department: teacher.department, // Changed from departmentId
+      class: teacher.class, // Changed from classId
       subjects: teacher.subjects,
       email: teacher.email,
       phone: teacher.phone || '',
@@ -243,10 +243,10 @@ export default function ManageTeachers() {
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm text-gray-900 dark:text-white">
-                          {departments.find(d => d.id === teacher.departmentId)?.name || teacher.departmentId}
+                          {teacher.department}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {classes.find(c => c.id === teacher.classId)?.name} - Year {classes.find(c => c.id === teacher.classId)?.year}
+                          {teacher.class}
                         </div>
                       </div>
                     </td>
@@ -343,8 +343,8 @@ export default function ManageTeachers() {
                     </label>
                     <select
                       required
-                      value={formData.departmentId}
-                      onChange={(e) => setFormData({...formData, departmentId: e.target.value})}
+                      value={formData.department}
+                      onChange={(e) => setFormData({...formData, department: e.target.value})}
                       aria-label="Select department"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     >
@@ -365,8 +365,8 @@ export default function ManageTeachers() {
                     </label>
                     <select
                       required
-                      value={formData.classId}
-                      onChange={(e) => setFormData({...formData, classId: e.target.value})}
+                      value={formData.class}
+                      onChange={(e) => setFormData({...formData, class: e.target.value})}
                       aria-label="Select class"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     >

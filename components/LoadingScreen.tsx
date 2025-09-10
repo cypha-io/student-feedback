@@ -25,10 +25,10 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
   ];
 
   useEffect(() => {
-    // Progress animation - 20 seconds total
+    // Progress animation - 5 seconds total
     const progressInterval = setInterval(() => {
       setProgress(prev => {
-        const newProgress = prev + Math.random() * 2 + 1; // Slower progress increment
+        const newProgress = prev + Math.random() * 3 + 2; // Faster progress increment
         if (newProgress >= 100) {
           clearInterval(progressInterval);
           setTimeout(() => {
@@ -39,12 +39,12 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
         }
         return newProgress;
       });
-    }, 200); // 20 seconds = 20000ms, 100 steps = ~200ms per step
+    }, 50); // 5 seconds = 5000ms, 100 steps = ~50ms per step
 
-    // Text cycling - slower to match longer duration
+    // Text cycling - faster to match shorter duration
     const textInterval = setInterval(() => {
       setCurrentText(prev => (prev + 1) % loadingTexts.length);
-    }, 3000); // Changed to 3 seconds for longer loading time
+    }, 600); // Changed to 600ms for faster loading time
 
     return () => {
       clearInterval(progressInterval);

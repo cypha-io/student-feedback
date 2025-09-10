@@ -133,7 +133,7 @@ export default function EvaluationOverview() {
           
           return {
             teacherName: teacher?.name || 'Unknown',
-            department: teacher?.departmentId || 'Unknown',
+            department: teacher?.department || 'Unknown',
             score: teacherPerf?.score || 0,
             rating: teacherPerf?.rating || 'No Data',
             date: new Date(feedback.$createdAt || '').toLocaleDateString()

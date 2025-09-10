@@ -36,6 +36,13 @@ export default function StudentFeedback() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [responses, setResponses] = useState<{[key: string]: number}>({});
 
+  // Filtered subjects based on selected teacher
+  const filteredSubjects = selectedTeacher ? 
+    subjects.filter(subject => {
+      const teacher = teachers.find(t => t.id === selectedTeacher);
+      return teacher?.subjects?.includes(subject.name);
+    }) : [];
+
   const sectionKeys = Object.keys(FEEDBACK_SECTIONS);
   const totalSections = sectionKeys.length;
 
@@ -63,11 +70,20 @@ export default function StudentFeedback() {
         fetch('/api/classes')
       ]);
 
-      setTeachers(await teachersRes.json());
-      setSubjects(await subjectsRes.json());
-      setClasses(await classesRes.json());
+      // Ensure we get valid arrays or default to empty arrays
+      const teachersData = teachersRes.ok ? await teachersRes.json() : [];
+      const subjectsData = subjectsRes.ok ? await subjectsRes.json() : [];
+      const classesData = classesRes.ok ? await classesRes.json() : [];
+
+      setTeachers(Array.isArray(teachersData) ? teachersData : []);
+      setSubjects(Array.isArray(subjectsData) ? subjectsData : []);
+      setClasses(Array.isArray(classesData) ? classesData : []);
     } catch (error) {
       console.error('Error fetching data:', error);
+      // Set empty arrays as fallback
+      setTeachers([]);
+      setSubjects([]);
+      setClasses([]);
     }
   };
 
@@ -76,6 +92,11 @@ export default function StudentFeedback() {
     if (studentInfo.name && studentInfo.studentId && studentInfo.class) {
       setCurrentStep(2);
     }
+  };
+
+  const handleTeacherChange = (teacherId: string) => {
+    setSelectedTeacher(teacherId);
+    setSelectedSubject(''); // Reset subject when teacher changes
   };
 
   const handleTeacherSelection = (e: React.FormEvent) => {
@@ -280,7 +301,7 @@ export default function StudentFeedback() {
                       required
                     >
                       <option value="">Select your class...</option>
-                      {classes.map((cls) => (
+                      {classes && classes.map((cls) => (
                         <option key={cls.id} value={cls.id}>
                           {cls.name} - Year {cls.year}
                         </option>
@@ -319,14 +340,14 @@ export default function StudentFeedback() {
                     <select
                       id="teacher"
                       value={selectedTeacher}
-                      onChange={(e) => setSelectedTeacher(e.target.value)}
+                      onChange={(e) => handleTeacherChange(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                       required
                     >
                       <option value="">Choose a teacher...</option>
-                      {teachers.map((teacher) => (
+                      {teachers && teachers.map((teacher) => (
                         <option key={teacher.id} value={teacher.id}>
-                          {teacher.name} - {teacher.departmentId}
+                          {teacher.name} - {teacher.department}
                         </option>
                       ))}
                     </select>
@@ -335,6 +356,11 @@ export default function StudentFeedback() {
                   <div>
                     <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
                       Subject
+                      {selectedTeacher && (
+                        <span className="text-sm text-gray-500 ml-2">
+                          (Only subjects taught by selected teacher)
+                        </span>
+                      )}
                     </label>
                     <select
                       id="subject"
@@ -342,9 +368,12 @@ export default function StudentFeedback() {
                       onChange={(e) => setSelectedSubject(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                       required
+                      disabled={!selectedTeacher}
                     >
-                      <option value="">Choose a subject...</option>
-                      {subjects.map((subject) => (
+                      <option value="">
+                        {selectedTeacher ? 'Choose a subject...' : 'Select a teacher first'}
+                      </option>
+                      {filteredSubjects.map((subject) => (
                         <option key={subject.id} value={subject.id}>
                           {subject.name}
                         </option>

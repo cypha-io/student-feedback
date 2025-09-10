@@ -11,11 +11,11 @@ export interface Teacher {
   id: string;
   name: string;
   employeeId: string;
-  departmentId: string;
-  classId: string;
+  department: string; // Changed from departmentId to match DB schema
+  class: string; // Changed from classId to match DB schema
   subjects: string[];
   email: string;
-  phone: string;
+  phone?: string; // Made optional to match DB schema
   createdAt: string;
   updatedAt: string;
 }

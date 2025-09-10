@@ -225,7 +225,7 @@ export default function TeacherEvaluationReports() {
       <div class="teacher-report">
         <div class="teacher-header">
           <h2>${report.teacher.name}</h2>
-          <p>Department: ${report.teacher.departmentId}</p>
+          <p>Department: ${report.teacher.department}</p>
           <p>Employee ID: ${report.teacher.employeeId}</p>
           <p>Overall Rating: <span class="rating ${getPerformanceClass(report.overallPercentage)}">${getPerformanceLabel(report.overallPercentage)}</span> (${report.overallPercentage.toFixed(1)}%)</p>
           <p>Total Evaluations: ${report.totalFeedbacks}</p>
@@ -421,7 +421,7 @@ export default function TeacherEvaluationReports() {
               <option value="all">All Teachers</option>
               {teachers.map(teacher => (
                 <option key={teacher.id} value={teacher.id}>
-                  {teacher.name} - {teacher.departmentId}
+                  {teacher.name} - {teacher.department}
                 </option>
               ))}
             </select>
@@ -485,7 +485,7 @@ export default function TeacherEvaluationReports() {
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">{report.teacher.name}</h2>
-                    <p className="text-gray-600">{report.teacher.departmentId} • {report.teacher.email}</p>
+                    <p className="text-gray-600">{report.teacher.department} • {report.teacher.email}</p>
                   </div>
                   <div className="text-right">
                     <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getPerformanceColor(report.overallPercentage)}`}>

@@ -1,13 +1,41 @@
 import { pgTable, text, integer, timestamp, uuid, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Teachers table
+// Departments table (removed code field) - moved first due to foreign key references
+export const departments = pgTable('departments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  head: text('head').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Classes table (updated to use year 1-3 instead of grade) - moved before teachers
+export const classes = pgTable('classes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  year: integer('year').notNull(), // Year 1, 2, or 3
+  capacity: integer('capacity').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Subjects table (removed code field)
+export const subjects = pgTable('subjects', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  department: text('department').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Teachers table - using string references to match actual DB structure
 export const teachers = pgTable('teachers', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   employeeId: text('employee_id').notNull().unique(),
-  departmentId: uuid('department_id').references(() => departments.id),
-  classId: uuid('class_id').references(() => classes.id),
+  department: text('department').notNull(), // Keep as text to match actual DB
+  class: text('class').notNull(), // Keep as text to match actual DB
   subjects: text('subjects').array().notNull().default([]),
   email: text('email').notNull(),
   phone: text('phone'),
@@ -29,40 +57,12 @@ export const students = pgTable('students', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Subjects table (removed code field)
-export const subjects = pgTable('subjects', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  department: text('department').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-
-// Classes table (updated to use year 1-3 instead of grade)
-export const classes = pgTable('classes', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  year: integer('year').notNull(), // Year 1, 2, or 3
-  capacity: integer('capacity').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-
 // Houses table
 export const houses = pgTable('houses', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   color: text('color').notNull(),
   description: text('description'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-
-// Departments table (removed code field)
-export const departments = pgTable('departments', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  head: text('head').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
