@@ -1,7 +1,6 @@
 import { db } from '@/lib/db';
 import { houses } from '@/lib/db/schema';
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
 
 export async function GET() {
   try {

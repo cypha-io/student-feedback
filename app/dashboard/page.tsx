@@ -98,7 +98,7 @@ export default function EvaluationOverview() {
 
       // Calculate teacher performance ratings
       const teacherPerformance = teachers.map(teacher => {
-        const teacherFeedbacks = feedbacks.filter(f => f.teacherId === teacher.$id);
+        const teacherFeedbacks = feedbacks.filter(f => f.teacherId === teacher.id);
         const teacherResponses = responses.filter(r => 
           teacherFeedbacks.some(f => f.$id === r.feedbackId)
         );
@@ -128,12 +128,12 @@ export default function EvaluationOverview() {
         .sort((a, b) => new Date(b.$createdAt || '').getTime() - new Date(a.$createdAt || '').getTime())
         .slice(0, 5)
         .map(feedback => {
-          const teacher = teachers.find(t => t.$id === feedback.teacherId);
-          const teacherPerf = teacherPerformance.find(tp => tp.teacher.$id === feedback.teacherId);
+          const teacher = teachers.find(t => t.id === feedback.teacherId);
+          const teacherPerf = teacherPerformance.find(tp => tp.teacher.id === feedback.teacherId);
           
           return {
             teacherName: teacher?.name || 'Unknown',
-            department: teacher?.department || 'Unknown',
+            department: teacher?.departmentId || 'Unknown',
             score: teacherPerf?.score || 0,
             rating: teacherPerf?.rating || 'No Data',
             date: new Date(feedback.$createdAt || '').toLocaleDateString()

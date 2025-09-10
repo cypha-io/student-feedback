@@ -3,15 +3,16 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { dbHelpers, COLLECTIONS } from '@/lib/neon';
-import { Subject as SubjectType, Class as ClassType, Department as DepartmentType } from '@/types/database';
+import { Subject as SubjectType, Class as ClassType, Department as DepartmentType, House } from '@/types/database';
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState<'subjects' | 'classes' | 'departments' | 'houses' | 'general'>('general');
+  const [activeTab, setActiveTab] = useState<'subjects' | 'classes' | 'departments' | 'houses' | 'general'>('houses');
   
   // State for data
   const [subjects, setSubjects] = useState<SubjectType[]>([]);
   const [classes, setClasses] = useState<ClassType[]>([]);
   const [departments, setDepartments] = useState<DepartmentType[]>([]);
+  const [houses, setHouses] = useState<House[]>([]);
 
   // Website settings state
   const [websiteSettings, setWebsiteSettings] = useState({
@@ -25,13 +26,14 @@ export default function Settings() {
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showClassModal, setShowClassModal] = useState(false);
   const [showDepartmentModal, setShowDepartmentModal] = useState(false);
+  const [showHouseModal, setShowHouseModal] = useState(false);
 
   // Form states
-  const [subjectForm, setSubjectForm] = useState<Omit<SubjectType, '$id' | '$createdAt' | '$updatedAt'>>({ 
+  const [subjectForm, setSubjectForm] = useState<Omit<SubjectType, 'id' | 'createdAt' | 'updatedAt'>>({ 
     name: '', 
     department: '' 
   });
-  const [classForm, setClassForm] = useState<Omit<ClassType, '$id' | '$createdAt' | '$updatedAt'>>({ 
+  const [classForm, setClassForm] = useState<Omit<ClassType, 'id' | 'createdAt' | 'updatedAt'>>({ 
     name: '', 
     year: 1,
     capacity: 0 
@@ -39,6 +41,10 @@ export default function Settings() {
   const [departmentForm, setDepartmentForm] = useState<Omit<DepartmentType, 'id' | 'createdAt' | 'updatedAt'>>({ 
     name: '', 
     head: '', 
+  });
+  const [houseForm, setHouseForm] = useState<Omit<House, 'id'>>({
+    name: '',
+    color: '#000000',
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -51,6 +57,8 @@ export default function Settings() {
       fetchClasses();
     } else if (activeTab === 'departments') {
       fetchDepartments();
+    } else if (activeTab === 'houses') {
+      fetchHouses();
     }
     
     // Load website settings from localStorage
@@ -97,6 +105,21 @@ export default function Settings() {
       console.error('Error fetching departments:', error);
       // Empty array if Appwrite is not configured
       setDepartments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchHouses = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/houses');
+      if (!res.ok) throw new Error('Failed to fetch houses');
+      const data = await res.json();
+      setHouses(data);
+    } catch (error) {
+      console.error('❌ Error fetching houses:', error);
+      setHouses([]);
     } finally {
       setLoading(false);
     }
@@ -201,6 +224,40 @@ export default function Settings() {
     }
   };
 
+  const handleAddHouse = async () => {
+    try {
+      // Validate required fields
+      if (!houseForm.name || !houseForm.color) {
+        alert('Please fill in all required fields (Name, Color)');
+        return;
+      }
+      
+      setLoading(true);
+      const url = editingId ? `/api/houses/${editingId}` : '/api/houses';
+      const method = editingId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(houseForm),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save house');
+      }
+
+      await fetchHouses();
+      resetHouseForm();
+      alert('House saved successfully!');
+    } catch (error) {
+      console.error('❌ Error saving house:', error);
+      alert(`Failed to save house: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetSubjectForm = () => {
     setSubjectForm({ name: '', department: '' });
     setShowSubjectModal(false);
@@ -217,6 +274,15 @@ export default function Settings() {
     setDepartmentForm({ name: '', head: '' });
     setShowDepartmentModal(false);
     setEditingId(null);
+  };
+
+  const resetHouseForm = () => {
+    setHouseForm({
+      name: '',
+      color: '#000000',
+    });
+    setEditingId(null);
+    setShowHouseModal(false);
   };
 
   const handleSaveWebsiteSettings = async () => {
@@ -272,6 +338,29 @@ export default function Settings() {
       } else if (type === 'department') {
         setDepartments(departments.filter(d => d.$id !== id));
       }
+    }
+  };
+
+  const handleEditHouse = (house: House) => {
+    setEditingId(house.id);
+    setHouseForm({
+      name: house.name,
+      color: house.color,
+    });
+    setShowHouseModal(true);
+  };
+
+  const handleDeleteHouse = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this house?')) return;
+
+    try {
+      const response = await fetch(`/api/houses/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete house');
+      setHouses(houses.filter(house => house.id !== id));
+      alert('House deleted successfully.');
+    } catch (error) {
+      console.error('Error deleting house:', error);
+      alert('Failed to delete house.');
     }
   };
 
@@ -638,6 +727,86 @@ export default function Settings() {
               </div>
             </div>
           )}
+
+          {/* Houses Management Tab */}
+          {activeTab === 'houses' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Manage Houses
+                </h2>
+                <button
+                  onClick={() => setShowHouseModal(true)}
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                  Add House
+                </button>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          House
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Color
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                      {loading ? (
+                        <tr>
+                          <td colSpan={3} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            Loading houses...
+                          </td>
+                        </tr>
+                      ) : houses.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            No houses found. Add your first house!
+                          </td>
+                        </tr>
+                      ) : (
+                        houses.map((house) => (
+                          <tr key={house.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                              {house.name}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                              <div className="flex items-center">
+                                <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: house.color }}></div>
+                                {house.color}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm space-x-2">
+                              <button
+                                onClick={() => handleEditHouse(house)}
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteHouse(house.id!)}
+                                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Subject Modal */}
@@ -818,6 +987,60 @@ export default function Settings() {
                   className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700"
                 >
                   {editingId ? 'Update' : 'Add'} Department
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* House Modal */}
+        {showHouseModal && (
+          <div className="fixed inset-0 z-50 overflow-auto bg-gray-900 bg-opacity-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {editingId ? 'Edit House' : 'Add New House'}
+                </h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label htmlFor="house-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    House Name
+                  </label>
+                  <input
+                    id="house-name"
+                    type="text"
+                    placeholder="Enter house name"
+                    value={houseForm.name}
+                    onChange={(e) => setHouseForm({...houseForm, name: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="house-color" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    House Color
+                  </label>
+                  <input
+                    id="house-color"
+                    type="color"
+                    value={houseForm.color}
+                    onChange={(e) => setHouseForm({...houseForm, color: e.target.value})}
+                    className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={resetHouseForm}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddHouse}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700"
+                >
+                  {editingId ? 'Update' : 'Add'} House
                 </button>
               </div>
             </div>
