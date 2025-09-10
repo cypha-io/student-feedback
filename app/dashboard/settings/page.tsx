@@ -3,8 +3,15 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { House, Subject, Class, Department } from '@/types/database';
+import { useNotification, showSuccess, showError } from '@/components/NotificationSystem';
+import { useConfirmation } from '@/components/ConfirmationDialog';
 
 export default function Settings() {
+  const { addNotification } = useNotification();
+  const { confirm } = useConfirmation();
+  const notifySuccess = showSuccess(addNotification);
+  const notifyError = showError(addNotification);
+  
   const [activeTab, setActiveTab] = useState<'general' | 'houses' | 'subjects' | 'classes' | 'departments'>('general');
   
   // State for all data types
@@ -150,7 +157,7 @@ export default function Settings() {
     try {
       // Validate required fields
       if (!houseForm.name || !houseForm.color) {
-        alert('Please fill in all required fields (Name, Color)');
+        notifyError('Validation Error', 'Please fill in all required fields (Name, Color)');
         return;
       }
       
@@ -171,10 +178,10 @@ export default function Settings() {
 
       await fetchHouses();
       resetHouseForm();
-      alert('House saved successfully!');
-    } catch (error) {
-      console.error('❌ Error saving house:', error);
-      alert(`Failed to save house: ${error instanceof Error ? error.message : String(error)}`);
+      notifySuccess('House saved successfully!');
+    } catch (err) {
+      console.error('❌ Error saving house:', err);
+      notifyError('Save Failed', `Failed to save house: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -199,16 +206,24 @@ export default function Settings() {
   };
 
   const handleDeleteHouse = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this house?')) return;
+    const confirmed = await confirm({
+      title: 'Delete House',
+      message: 'Are you sure you want to delete this house? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+    
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/houses/${id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete house');
       setHouses(houses.filter(house => house.id !== id));
-      alert('House deleted successfully.');
+      notifySuccess('House deleted successfully.');
     } catch (error) {
       console.error('Error deleting house:', error);
-      alert('Failed to delete house.');
+      notifyError('Delete Failed', 'Failed to delete house.');
     }
   };
 
@@ -216,7 +231,7 @@ export default function Settings() {
   const handleAddSubject = async () => {
     try {
       if (!subjectForm.name || !subjectForm.department) {
-        alert('Please fill in all required fields (Name, Department)');
+        notifyError('Validation Error', 'Please fill in all required fields (Name, Department)');
         return;
       }
       
@@ -237,10 +252,10 @@ export default function Settings() {
 
       await fetchSubjects();
       resetSubjectForm();
-      alert('Subject saved successfully!');
-    } catch (error) {
-      console.error('❌ Error saving subject:', error);
-      alert(`Failed to save subject: ${error instanceof Error ? error.message : String(error)}`);
+      notifySuccess('Subject saved successfully!');
+    } catch (err) {
+      console.error('❌ Error saving subject:', err);
+      notifyError('Save Failed', `Failed to save subject: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -260,16 +275,24 @@ export default function Settings() {
   };
 
   const handleDeleteSubject = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this subject?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Subject',
+      message: 'Are you sure you want to delete this subject? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+    
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/subjects/${id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete subject');
       setSubjects(subjects.filter(subject => subject.id !== id));
-      alert('Subject deleted successfully.');
+      notifySuccess('Subject deleted successfully.');
     } catch (error) {
       console.error('Error deleting subject:', error);
-      alert('Failed to delete subject.');
+      notifyError('Delete Failed', 'Failed to delete subject.');
     }
   };
 
@@ -277,7 +300,7 @@ export default function Settings() {
   const handleAddClass = async () => {
     try {
       if (!classForm.name || !classForm.year || !classForm.capacity) {
-        alert('Please fill in all required fields (Name, Year, Capacity)');
+        notifyError('Validation Error', 'Please fill in all required fields (Name, Year, Capacity)');
         return;
       }
       
@@ -298,10 +321,10 @@ export default function Settings() {
 
       await fetchClasses();
       resetClassForm();
-      alert('Class saved successfully!');
-    } catch (error) {
-      console.error('❌ Error saving class:', error);
-      alert(`Failed to save class: ${error instanceof Error ? error.message : String(error)}`);
+      notifySuccess('Class saved successfully!');
+    } catch (err) {
+      console.error('❌ Error saving class:', err);
+      notifyError('Save Failed', `Failed to save class: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -320,16 +343,24 @@ export default function Settings() {
   };
 
   const handleDeleteClass = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this class?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Class',
+      message: 'Are you sure you want to delete this class? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+    
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/classes/${id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete class');
       setClasses(classes.filter(classItem => classItem.id !== id));
-      alert('Class deleted successfully.');
+      notifySuccess('Class deleted successfully.');
     } catch (error) {
       console.error('Error deleting class:', error);
-      alert('Failed to delete class.');
+      notifyError('Delete Failed', 'Failed to delete class.');
     }
   };
 
@@ -337,7 +368,7 @@ export default function Settings() {
   const handleAddDepartment = async () => {
     try {
       if (!departmentForm.name || !departmentForm.head) {
-        alert('Please fill in all required fields (Name, Head)');
+        notifyError('Validation Error', 'Please fill in all required fields (Name, Head)');
         return;
       }
       
@@ -358,10 +389,10 @@ export default function Settings() {
 
       await fetchDepartments();
       resetDepartmentForm();
-      alert('Department saved successfully!');
-    } catch (error) {
-      console.error('❌ Error saving department:', error);
-      alert(`Failed to save department: ${error instanceof Error ? error.message : String(error)}`);
+      notifySuccess('Department saved successfully!');
+    } catch (err) {
+      console.error('❌ Error saving department:', err);
+      notifyError('Save Failed', `Failed to save department: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -380,16 +411,24 @@ export default function Settings() {
   };
 
   const handleDeleteDepartment = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this department?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Department',
+      message: 'Are you sure you want to delete this department? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+    
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/departments/${id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete department');
       setDepartments(departments.filter(department => department.id !== id));
-      alert('Department deleted successfully.');
+      notifySuccess('Department deleted successfully.');
     } catch (error) {
       console.error('Error deleting department:', error);
-      alert('Failed to delete department.');
+      notifyError('Delete Failed', 'Failed to delete department.');
     }
   };
 
@@ -403,7 +442,7 @@ export default function Settings() {
 
   const saveWebsiteSettings = () => {
     localStorage.setItem('websiteSettings', JSON.stringify(websiteSettings));
-    alert('Settings saved successfully!');
+    notifySuccess('Settings saved successfully!');
   };
 
   return (
@@ -557,7 +596,7 @@ export default function Settings() {
                             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                               <div className="flex items-center">
                                 <div 
-                                  className="w-6 h-6 rounded-full mr-2 border border-gray-300" 
+                                  className="house-color-indicator" 
                                   style={{backgroundColor: house.color}}
                                 ></div>
                                 {house.color}
