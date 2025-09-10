@@ -27,6 +27,9 @@ export default function Settings() {
   const [showClassModal, setShowClassModal] = useState(false);
   const [showDepartmentModal, setShowDepartmentModal] = useState(false);
 
+  // Additional state for subject modal departments
+  const [modalDepartments, setModalDepartments] = useState<Department[]>([]);
+
   // Form states for all entities
   const [houseForm, setHouseForm] = useState<Omit<House, 'id'>>({
     name: '',
@@ -127,6 +130,19 @@ export default function Settings() {
       setDepartments([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch departments for subject modal
+  const fetchDepartmentsForModal = async () => {
+    try {
+      const res = await fetch('/api/departments');
+      if (!res.ok) throw new Error('Failed to fetch departments');
+      const data = await res.json();
+      setModalDepartments(data);
+    } catch (error) {
+      console.error('❌ Error fetching departments for modal:', error);
+      setModalDepartments([]);
     }
   };
 
@@ -240,6 +256,7 @@ export default function Settings() {
     setEditingId(subject.id);
     setSubjectForm({ name: subject.name, department: subject.department });
     setShowSubjectModal(true);
+    fetchDepartmentsForModal(); // Fetch departments for dropdown
   };
 
   const handleDeleteSubject = async (id: string) => {
@@ -578,7 +595,10 @@ export default function Settings() {
                   Manage Subjects
                 </h2>
                 <button
-                  onClick={() => setShowSubjectModal(true)}
+                  onClick={() => {
+                    setShowSubjectModal(true);
+                    fetchDepartmentsForModal(); // Fetch departments for dropdown
+                  }}
                   className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-200"
                 >
                   Add Subject
@@ -899,14 +919,19 @@ export default function Settings() {
                   <label htmlFor="subject-department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Department
                   </label>
-                  <input
+                  <select
                     id="subject-department"
-                    type="text"
-                    placeholder="Enter department name"
                     value={subjectForm.department}
                     onChange={(e) => setSubjectForm({...subjectForm, department: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
+                  >
+                    <option value="">Select a department</option>
+                    {modalDepartments.map((department) => (
+                      <option key={department.id} value={department.name}>
+                        {department.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
