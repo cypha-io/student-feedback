@@ -3,9 +3,14 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { useNotification } from '@/components/NotificationSystem';
+import { useConfirmation } from '@/components/ConfirmationDialog';
 import { Teacher, Department, Class as ClassType, Subject } from '@/types/database';
 
 export default function ManageTeachers() {
+  const { addNotification } = useNotification();
+  const { confirm } = useConfirmation();
+  
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -86,27 +91,49 @@ export default function ManageTeachers() {
     e.preventDefault();
     setLoading(true);
 
-    const url = editingTeacher ? `/api/teachers/${editingTeacher.id}` : '/api/teachers';
+    const url = '/api/teachers'; // Same endpoint for both POST and PUT
     const method = editingTeacher ? 'PUT' : 'POST';
 
     try {
+      // Prepare data for API (ensure we use the correct property names)
+      const apiData = {
+        ...formData,
+        class: formData.class, // Make sure 'class' property is used
+        id: editingTeacher?.id // Include ID for PUT requests
+      };
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(apiData),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorText = await response.text();
+        console.error('❌ API Response:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
+        }
         throw new Error(errorData.error || 'Failed to save teacher');
       }
 
       await fetchTeachers(); // Refresh the list
       resetForm();
-      alert('Teacher saved successfully!');
+      addNotification({
+        type: 'success',
+        title: 'Success',
+        message: 'Teacher saved successfully!'
+      });
     } catch (error) {
       console.error('❌ Error saving teacher:', error);
-      alert(`Failed to save teacher: ${error instanceof Error ? error.message : String(error)}`);
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: `Failed to save teacher: ${error instanceof Error ? error.message : String(error)}`
+      });
     } finally {
       setLoading(false);
     }
@@ -141,16 +168,30 @@ export default function ManageTeachers() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this teacher?')) return;
-
+    const confirmed = await confirm({
+      title: 'Delete Teacher',
+      message: 'Are you sure you want to delete this teacher? This action cannot be undone.',
+      type: 'danger'
+    });
+    if (!confirmed) return;
+    
     try {
-      const response = await fetch(`/api/teachers/${id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/teachers?id=${id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete teacher');
-      setTeachers(teachers.filter(teacher => teacher.id !== id));
-      alert('Teacher deleted successfully.');
+      
+      addNotification({
+        type: 'success',
+        title: 'Success',
+        message: 'Teacher deleted successfully.'
+      });
+      await fetchTeachers(); // Refresh the list
     } catch (error) {
       console.error('Error deleting teacher:', error);
-      alert('Failed to delete teacher.');
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to delete teacher.'
+      });
     }
   };
 
