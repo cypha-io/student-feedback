@@ -2,7 +2,7 @@
   {
     "fullName": "Super Admin",
     "email": "admin@olagshs.edu.gh",
-    "password": "Admin@123",
+    "password": "$2b$10$OODZFjqoC6XciUDQS8tG.u5Qw2KoXAIC2RcgmBim.NyJs2NStLVzW",
     "role": "superadmin"
   }
 ]

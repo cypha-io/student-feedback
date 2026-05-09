@@ -17,6 +17,7 @@
   ],
   "viewer": [
     "viewOverview",
-    "viewReports"
+    "viewReports",
+    "viewResponses"
   ]
 }

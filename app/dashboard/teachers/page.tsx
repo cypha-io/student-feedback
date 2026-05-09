@@ -13,7 +13,7 @@ export default function ManageTeachers() {
   
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(false);
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departments] = useState<Department[]>([]);
   const [classes, setClasses] = useState<ClassType[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);

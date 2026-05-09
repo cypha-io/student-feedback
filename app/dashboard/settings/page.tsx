@@ -594,7 +594,7 @@ export default function Settings() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'general' | 'roles' | 'houses' | 'subjects' | 'classes' | 'departments')}
               className={`flex-1 min-w-[140px] flex items-center justify-center gap-3 py-3 px-4 rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all ${
                 activeTab === tab.id
                   ? 'bg-slate-900 text-white shadow-xl shadow-slate-200'

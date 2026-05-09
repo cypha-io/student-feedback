@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { dbHelpers, COLLECTIONS } from '@/lib/neon';
 import DashboardLayout from '../../../components/DashboardLayout';
 import ProtectedRoute from '../../../components/ProtectedRoute';
-import styles from './responses.module.css';
 
 interface Feedback {
   id: string;
@@ -48,20 +47,6 @@ export default function StudentResponsesPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedResponse, setSelectedResponse] = useState<ProcessedFeedbackResponse | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
-
-  // Debug info for development
-  const [debugInfo, setDebugInfo] = useState<{
-    totalFeedbacks: number;
-    totalResponses: number;
-    environmentOk: boolean;
-    lastFetch: string | null;
-  }>({
-    totalFeedbacks: 0,
-    totalResponses: 0,
-    environmentOk: false,
-    lastFetch: null
-  });
 
   useEffect(() => {
     const loadResponses = async () => {
@@ -112,14 +97,7 @@ export default function StudentResponsesPage() {
       
       console.log('Responses fetched:', responsesResult.documents.length);
 
-      // Update debug info
-      setDebugInfo({
-        totalFeedbacks: feedbacksResult.documents.length,
-        totalResponses: responsesResult.documents.length,
-        environmentOk: !!(process.env.DATABASE_URL),
-        lastFetch: new Date().toISOString()
-      });
-
+      // Process the data
       // Process the data
       const processedResponses: ProcessedFeedbackResponse[] = [];
       
@@ -308,17 +286,6 @@ export default function StudentResponsesPage() {
             <div className="px-5 py-2.5 bg-blue-50 border border-blue-100 rounded-2xl">
               <span className="text-xs font-black text-blue-600 uppercase tracking-widest">{responses.length} Submissions</span>
             </div>
-            {process.env.NODE_ENV === 'development' && (
-              <button
-                onClick={() => setShowDebugInfo(!showDebugInfo)}
-                className="p-2.5 bg-slate-100 text-slate-500 hover:bg-slate-900 hover:text-white rounded-2xl transition-all group active:scale-95"
-                title="System Diagnostics"
-              >
-                <svg className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-              </button>
-            )}
           </div>
         </div>
 

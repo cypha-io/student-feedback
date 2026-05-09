@@ -5,9 +5,18 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from './AuthProvider';
+import { dbHelpers, COLLECTIONS } from '@/lib/neon';
 
 interface DashboardLayoutProps {
   children: ReactNode;
+}
+
+interface NotificationItem {
+  title: string;
+  desc: string;
+  time: string;
+  icon: string;
+  type: 'evaluation' | 'system' | 'security';
 }
 
 type RolePermissions = Record<string, string[]>;
@@ -94,10 +103,47 @@ const navigation = [
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [rolePermissions, setRolePermissions] = useState<RolePermissions>(defaultRolePermissions);
   const pathname = usePathname();
   const router = useRouter();
   const { logout, isAuthenticated, loading, role, fullName } = useAuth();
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        interface FeedbackDoc {
+          $createdAt: string;
+          teacherName?: string;
+        }
+
+        const res = await dbHelpers.getAll(COLLECTIONS.FEEDBACKS);
+        const feedbacks = (res.documents as unknown as FeedbackDoc[]).sort((a, b) => 
+          new Date(b.$createdAt || '').getTime() - new Date(a.$createdAt || '').getTime()
+        ).slice(0, 5);
+
+        const mapped: NotificationItem[] = feedbacks.map((f) => ({
+          title: 'Evaluation Submitted',
+          desc: `New feedback received for ${f.teacherName || 'a teacher'}`,
+          time: new Date(f.$createdAt || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          icon: 'M9 12l2 2 4-4',
+          type: 'evaluation'
+        }));
+
+        setNotifications(mapped);
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 60000); // refresh every min
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
     logout();
@@ -290,27 +336,125 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
  
               {/* Notification & Other Actions */}
-              <div className="flex items-center space-x-1 sm:space-x-2">
-                <button className="p-2.5 text-slate-500 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-all relative group active:scale-90">
-                  <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-5 5-5-5h5v-7a1 1 0 011-1h3a1 1 0 011 1v7z" />
-                  </svg>
-                  <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-blue-600 rounded-full border-2 border-white animate-pulse"></span>
-                </button>
+              <div className="flex items-center space-x-1 sm:space-x-2 relative">
+                <div className="relative">
+                  <button 
+                    onClick={() => {
+                      setShowNotifications(!showNotifications);
+                      setShowProfileMenu(false);
+                    }}
+                    className="p-2.5 text-slate-500 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-all relative group active:scale-90"
+                  >
+                    <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    {notifications.length > 0 && (
+                      <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-blue-600 rounded-full border-2 border-white animate-pulse"></span>
+                    )}
+                  </button>
+
+                  {/* Notification Dropdown */}
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-3 w-80 bg-white rounded-3xl shadow-2xl shadow-slate-200 border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
+                      <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between">
+                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">Live Activity</h3>
+                        <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg text-[9px] font-black">{notifications.length} LATEST</span>
+                      </div>
+                      <div className="max-h-[400px] overflow-y-auto">
+                        {notifications.length > 0 ? (
+                          notifications.map((n, i) => (
+                            <div key={i} className="px-6 py-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 cursor-pointer group">
+                              <div className="flex gap-4">
+                                <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-blue-600 transition-all">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={n.icon} />
+                                  </svg>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-xs font-black text-slate-900">{n.title}</p>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">{n.desc}</p>
+                                  <p className="text-[9px] font-bold text-slate-300 mt-1 uppercase">{n.time}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="py-12 text-center">
+                            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-3">
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                              </svg>
+                            </div>
+                            <p className="text-xs font-bold text-slate-400 italic">No activity detected</p>
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        onClick={() => router.push('/dashboard/responses')}
+                        className="w-full py-4 text-[10px] font-black text-blue-600 hover:bg-blue-50 transition-colors uppercase tracking-widest border-t border-slate-50"
+                      >
+                        Review All Intelligence
+                      </button>
+                    </div>
+                  )}
+                </div>
                 
-                <button className="p-2.5 text-slate-500 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-all group active:scale-90">
+                <button 
+                  onClick={() => router.push('/dashboard/settings')}
+                  className="p-2.5 text-slate-500 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-all group active:scale-90"
+                >
                   <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth={1.5} />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                   </svg>
                 </button>
               </div>
 
               {/* Profile Shortcut */}
-              <div className="flex items-center pl-2 sm:pl-4 border-l border-slate-200 ml-1 sm:ml-2">
-                <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 font-bold border border-blue-200">
-                  {displayName.charAt(0)}
-                </div>
+              <div className="relative flex items-center pl-2 sm:pl-4 border-l border-slate-200 ml-1 sm:ml-2">
+                <button 
+                  onClick={() => {
+                    setShowProfileMenu(!showProfileMenu);
+                    setShowNotifications(false);
+                  }}
+                  className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 font-bold border border-blue-200 hover:scale-105 transition-transform active:scale-95"
+                >
+                  {(fullName || 'Admin').charAt(0)}
+                </button>
+
+                {/* Profile Menu Dropdown */}
+                {showProfileMenu && (
+                  <div className="absolute right-0 top-full mt-3 w-64 bg-white rounded-3xl shadow-2xl shadow-slate-200 border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Authenticated As</p>
+                      <p className="text-sm font-black text-slate-900 truncate">{fullName || 'Admin User'}</p>
+                      <p className="text-[10px] font-bold text-blue-600 mt-0.5 uppercase">{role || 'Administrator'}</p>
+                    </div>
+                    <div className="p-2">
+                      <button 
+                        onClick={() => router.push('/dashboard/settings')}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 rounded-2xl transition-colors group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-white transition-all">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                        Account Details
+                      </button>
+                      <button 
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-red-600 hover:bg-red-50 rounded-2xl transition-colors group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-red-100/50 flex items-center justify-center group-hover:bg-white transition-all">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                        </div>
+                        Terminate Session
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

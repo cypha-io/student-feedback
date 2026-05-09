@@ -2,9 +2,26 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { db, TABLES, eq } from '@/lib/db'
+import bcrypt from 'bcryptjs'
 
-function serializeCookie(name: string, val: string, options: Record<string, string | number | boolean | undefined> = {}) {
-  const opt = { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 24 * 60 * 60, secure: process.env.NODE_ENV === 'production', ...options }
+interface CookieOptions {
+  path: string;
+  httpOnly: boolean;
+  sameSite: 'lax' | 'strict' | 'none';
+  maxAge?: number;
+  secure: boolean;
+  domain?: string;
+}
+
+function serializeCookie(name: string, val: string, options: Partial<CookieOptions> = {}) {
+  const opt: CookieOptions = { 
+    path: '/', 
+    httpOnly: true, 
+    sameSite: 'lax', 
+    maxAge: 24 * 60 * 60, 
+    secure: process.env.NODE_ENV === 'production', 
+    ...options 
+  }
   let cookie = `${name}=${encodeURIComponent(val)}`
   if (opt.maxAge || opt.maxAge === 0) cookie += `; Max-Age=${opt.maxAge}`
   if (opt.domain) cookie += `; Domain=${opt.domain}`
@@ -32,15 +49,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // 1. First priority: Check Neon Database
   try {
     const [dbAdmin] = await db.select().from(TABLES.ADMINS).where(eq(TABLES.ADMINS.email, email)).limit(1);
-    if (dbAdmin && dbAdmin.password === password) {
-      const cookie = serializeCookie('admin_auth', email)
-      res.setHeader('Set-Cookie', cookie)
-      return res.status(200).json({ 
-        success: true, 
-        email: dbAdmin.email, 
-        fullName: dbAdmin.fullName, 
-        role: dbAdmin.role 
-      })
+    if (dbAdmin && dbAdmin.password) {
+      // Check if password matches (handling both hashed and plain text for safety during transition)
+      const isMatch = await bcrypt.compare(password, dbAdmin.password).catch(() => false) || dbAdmin.password === password;
+      
+      if (isMatch) {
+        const cookie = serializeCookie('admin_auth', email)
+        res.setHeader('Set-Cookie', cookie)
+        return res.status(200).json({ 
+          success: true, 
+          email: dbAdmin.email, 
+          fullName: dbAdmin.fullName, 
+          role: dbAdmin.role 
+        })
+      }
     }
   } catch (err) {
     console.error('Database authentication error:', err)
@@ -50,11 +72,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const raw = await fs.readFile(DATA_PATH, 'utf-8')
     const list = JSON.parse(raw)
-    const match = list.find((a: { email: string; password?: string; fullName?: string; role?: string }) => a.email === email && a.password === password)
-    if (match) {
-      const cookie = serializeCookie('admin_auth', email)
-      res.setHeader('Set-Cookie', cookie)
-      return res.status(200).json({ success: true, email: match.email, fullName: match.fullName || match.email, role: match.role || 'manager' })
+    const match = list.find((a: { email: string; password?: string; fullName?: string; role?: string }) => a.email === email)
+    
+    if (match && match.password) {
+      const isMatch = await bcrypt.compare(password, match.password).catch(() => false) || match.password === password;
+      
+      if (isMatch) {
+        const cookie = serializeCookie('admin_auth', email)
+        res.setHeader('Set-Cookie', cookie)
+        return res.status(200).json({ success: true, email: match.email, fullName: match.fullName || match.email, role: match.role || 'manager' })
+      }
     }
   } catch {
     // ignore read errors

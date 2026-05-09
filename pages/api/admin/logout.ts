@@ -1,7 +1,23 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
-function serializeCookie(name: string, val: string, options: Record<string, string | number | boolean | undefined> = {}) {
-  const opt = { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 0, secure: process.env.NODE_ENV === 'production', ...options }
+interface CookieOptions {
+  path: string;
+  httpOnly: boolean;
+  sameSite: 'lax' | 'strict' | 'none';
+  maxAge?: number;
+  secure: boolean;
+  domain?: string;
+}
+
+function serializeCookie(name: string, val: string, options: Partial<CookieOptions> = {}) {
+  const opt: CookieOptions = { 
+    path: '/', 
+    httpOnly: true, 
+    sameSite: 'lax', 
+    maxAge: 0, 
+    secure: process.env.NODE_ENV === 'production', 
+    ...options 
+  }
   let cookie = `${name}=${encodeURIComponent(val)}`
   if (opt.maxAge !== undefined) cookie += `; Max-Age=${opt.maxAge}`
   if (opt.domain) cookie += `; Domain=${opt.domain}`

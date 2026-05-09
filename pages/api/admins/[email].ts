@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { db, TABLES, eq } from '@/lib/db'
+import bcrypt from 'bcryptjs'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { email: queryEmail } = req.query
@@ -25,11 +26,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (existing) return res.status(409).json({ error: 'Already exists' })
       }
 
+      let hashedPassword = undefined;
+      if (password) {
+        hashedPassword = await bcrypt.hash(password, 10);
+      }
+
       await db.update(TABLES.ADMINS)
         .set({
           ...(fullName && { fullName }),
           ...(newEmail && { email: newEmail }),
-          ...(password && { password }),
+          ...(password && { password: hashedPassword }),
           ...(role && { role }),
           updatedAt: new Date()
         })

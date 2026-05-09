@@ -511,7 +511,7 @@ export default function QuestionsForm() {
                   </svg>
                 </div>
                 <h3 className="text-xl font-black text-slate-900 mb-2">Workspace Empty</h3>
-                <p className="text-slate-400 text-sm max-w-xs mx-auto">Click "Add Question" or "Auto-Populate" to start building your evaluation form.</p>
+                <p className="text-slate-400 text-sm max-w-xs mx-auto">Click &quot;Add Question&quot; or &quot;Auto-Populate&quot; to start building your evaluation form.</p>
               </div>
             ) : (
               questions.map((question, index) => (
