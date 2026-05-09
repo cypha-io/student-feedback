@@ -4,57 +4,59 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  fullName: string | null;
+  role: string | null;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@olagshs.edu.gh';
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin1234';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [fullName, setFullName] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already authenticated on mount
-    const checkAuth = () => {
-      if (typeof window !== 'undefined') {
-        const authToken = localStorage.getItem('admin_auth_token');
-        const authExpiry = localStorage.getItem('admin_auth_expiry');
-        
-        if (authToken && authExpiry) {
-          const now = new Date().getTime();
-          const expiry = parseInt(authExpiry);
-          
-          if (now < expiry) {
-            setIsAuthenticated(true);
-          } else {
-            // Token expired, remove it
-            localStorage.removeItem('admin_auth_token');
-            localStorage.removeItem('admin_auth_expiry');
-          }
+    // Check auth status via session API
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/admin/session');
+        const data = await res.json();
+        if (data?.authenticated) {
+          setIsAuthenticated(true);
+          setFullName(data.fullName || null);
+          setRole(data.role || null);
+        } else {
+          setIsAuthenticated(false);
+          setFullName(null);
+          setRole(null);
         }
+      } catch {
+        setIsAuthenticated(false);
+        setFullName(null);
+        setRole(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-
     checkAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Simple credential check
-      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
         setIsAuthenticated(true);
-        
-        // Set authentication with 24-hour expiry
-        const expiry = new Date().getTime() + (24 * 60 * 60 * 1000); // 24 hours
-        localStorage.setItem('admin_auth_token', 'authenticated');
-        localStorage.setItem('admin_auth_expiry', expiry.toString());
-        
+        setFullName(data.fullName || null);
+        setRole(data.role || null);
         return true;
       }
       return false;
@@ -64,14 +66,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' });
+    } catch {
+      console.error('Logout error');
+    }
     setIsAuthenticated(false);
-    localStorage.removeItem('admin_auth_token');
-    localStorage.removeItem('admin_auth_expiry');
+    setFullName(null);
+    setRole(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, fullName, role, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

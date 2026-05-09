@@ -113,43 +113,63 @@ const NotificationToast = ({ notification, onClose }: NotificationToastProps) =>
     switch (notification.type) {
       case 'success':
         return {
-          bg: 'bg-green-50 dark:bg-green-900/20',
-          border: 'border-green-200 dark:border-green-700',
-          icon: '✅',
-          iconColor: 'text-green-600 dark:text-green-400',
-          titleColor: 'text-green-800 dark:text-green-200'
+          bg: 'bg-green-50',
+          border: 'border-green-200',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ),
+          iconColor: 'text-green-600',
+          titleColor: 'text-green-800'
         };
       case 'error':
         return {
-          bg: 'bg-red-50 dark:bg-red-900/20',
-          border: 'border-red-200 dark:border-red-700',
-          icon: '❌',
-          iconColor: 'text-red-600 dark:text-red-400',
-          titleColor: 'text-red-800 dark:text-red-200'
+          bg: 'bg-red-50',
+          border: 'border-red-200',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ),
+          iconColor: 'text-red-600',
+          titleColor: 'text-red-800'
         };
       case 'warning':
         return {
-          bg: 'bg-yellow-50 dark:bg-yellow-900/20',
-          border: 'border-yellow-200 dark:border-yellow-700',
-          icon: '⚠️',
-          iconColor: 'text-yellow-600 dark:text-yellow-400',
-          titleColor: 'text-yellow-800 dark:text-yellow-200'
+          bg: 'bg-yellow-50',
+          border: 'border-yellow-200',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M10.29 3.86l-8 14A2 2 0 004 21h16a2 2 0 001.71-3.14l-8-14a2 2 0 00-3.42 0z" />
+            </svg>
+          ),
+          iconColor: 'text-yellow-600',
+          titleColor: 'text-yellow-800'
         };
       case 'info':
         return {
-          bg: 'bg-blue-50 dark:bg-blue-900/20',
-          border: 'border-blue-200 dark:border-blue-700',
-          icon: 'ℹ️',
-          iconColor: 'text-blue-600 dark:text-blue-400',
-          titleColor: 'text-blue-800 dark:text-blue-200'
+          bg: 'bg-blue-50',
+          border: 'border-blue-200',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+            </svg>
+          ),
+          iconColor: 'text-blue-600',
+          titleColor: 'text-blue-800'
         };
       default:
         return {
-          bg: 'bg-gray-50 dark:bg-gray-800',
-          border: 'border-gray-200 dark:border-gray-700',
-          icon: 'ℹ️',
-          iconColor: 'text-gray-600 dark:text-gray-400',
-          titleColor: 'text-gray-800 dark:text-gray-200'
+          bg: 'bg-gray-50',
+          border: 'border-gray-200',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+            </svg>
+          ),
+          iconColor: 'text-gray-600',
+          titleColor: 'text-gray-800'
         };
     }
   };
@@ -166,21 +186,21 @@ const NotificationToast = ({ notification, onClose }: NotificationToastProps) =>
     >
       <div className="flex items-start">
         <div className={`flex-shrink-0 ${styles.iconColor} mr-3 mt-0.5`}>
-          <span className="text-lg">{styles.icon}</span>
+          {styles.icon}
         </div>
         <div className="flex-1 min-w-0">
           <h4 className={`text-sm font-medium ${styles.titleColor} mb-1`}>
             {notification.title}
           </h4>
           {notification.message && (
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600">
               {notification.message}
             </p>
           )}
         </div>
         <button
           onClick={handleClose}
-          className="flex-shrink-0 ml-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="flex-shrink-0 ml-3 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <span className="sr-only">Close</span>
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

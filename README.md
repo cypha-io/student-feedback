@@ -1,8 +1,8 @@
-# SMEI - Student-Teacher Evaluation & Management Intelligence
+# Student-Teacher Evaluation & Management Intelligence
 
-A comprehensive web application for collecting and analyzing student feedback on teacher performance. Built with Next.js, TypeScript, and Appwrite as the backend.
+A comprehensive web application for collecting and analyzing student feedback on teacher performance. Built with Next.js, TypeScript, and Neon/PostgreSQL.
 
-**Software Developer:** Chamba Nanang - Cypha Inc.  
+**Built by:** SwapGPA Technologies Limited  
 **Deployed for:** Our Lady of Grace Senior High School (OLAGSHS)
 
 ## Features
@@ -109,6 +109,7 @@ npm run dev
    - **Performance Reports**: View detailed analytics
    - **Student Responses**: Review all submissions
    - **System Settings**: Configure the application
+   - **User Management**: Create admins and assign access roles
 
 ## Database Schema
 
@@ -174,6 +175,9 @@ scripts/                # Database utilities
 ### Environment Variables
 ```env
 DATABASE_URL=your_neon_database_connection_string
+ADMIN_EMAIL=admin@olagshs.edu.gh
+ADMIN_PASSWORD=your_admin_password
+ADMIN_FULL_NAME=OLAG SHS Administrator
 ```
 
 ## License

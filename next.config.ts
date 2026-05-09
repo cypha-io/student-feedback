@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'olagshs.edu.gh',
+        pathname: '/**',
+      },
+    ],
+  },
   
   // Ensure environment variables are properly loaded
   env: {

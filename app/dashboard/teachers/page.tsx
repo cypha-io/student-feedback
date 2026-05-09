@@ -31,10 +31,21 @@ export default function ManageTeachers() {
   // Load data from database on component mount
   useEffect(() => {
     fetchTeachers();
-    fetchDepartments();
     fetchClasses();
     fetchSubjects();
   }, []);
+
+  // Lock background scroll when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isModalOpen]);
 
   const fetchTeachers = async () => {
     try {
@@ -44,22 +55,10 @@ export default function ManageTeachers() {
       const data = await res.json();
       setTeachers(data);
     } catch (error) {
-      console.error('❌ Error fetching teachers:', error);
+      console.error('Error fetching teachers:', error);
       setTeachers([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const res = await fetch('/api/departments');
-      if (!res.ok) throw new Error('Failed to fetch departments');
-      const data = await res.json();
-      setDepartments(data);
-    } catch (error) {
-      console.error('❌ Error fetching departments:', error);
-      setDepartments([]);
     }
   };
 
@@ -70,7 +69,7 @@ export default function ManageTeachers() {
       const data = await res.json();
       setSubjects(data);
     } catch (error) {
-      console.error('❌ Error fetching subjects:', error);
+      console.error('Error fetching subjects:', error);
       setSubjects([]);
     }
   };
@@ -82,7 +81,7 @@ export default function ManageTeachers() {
       const data = await res.json();
       setClasses(data);
     } catch (error) {
-      console.error('❌ Error fetching classes:', error);
+      console.error('Error fetching classes:', error);
       setClasses([]);
     }
   };
@@ -110,7 +109,7 @@ export default function ManageTeachers() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ API Response:', errorText);
+        console.error('API Response:', errorText);
         let errorData;
         try {
           errorData = JSON.parse(errorText);
@@ -128,7 +127,7 @@ export default function ManageTeachers() {
         message: 'Teacher saved successfully!'
       });
     } catch (error) {
-      console.error('❌ Error saving teacher:', error);
+      console.error('Error saving teacher:', error);
       addNotification({
         type: 'error',
         title: 'Error',
@@ -207,125 +206,154 @@ export default function ManageTeachers() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
+      <div className="space-y-8 pb-12">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Manage Teachers
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Add, edit, and manage teacher information
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              Teacher Management
+            </h2>
+            <p className="text-slate-500 mt-1 text-sm font-medium">
+              Maintain a detailed database of teaching staff and their assignments
             </p>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-200"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all duration-300 shadow-xl shadow-blue-100 flex items-center gap-2 group active:scale-95"
           >
+            <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+            </svg>
             Add New Teacher
           </button>
         </div>
 
-        {/* Teachers Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Teachers List ({teachers.length})
-            </h2>
+        {/* Content Card */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+            <h3 className="text-lg font-black text-slate-900 tracking-tight">
+              Staff Records <span className="ml-2 text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-lg text-xs uppercase tracking-widest">{teachers.length}</span>
+            </h3>
+            <div className="flex items-center gap-4">
+              <div className="relative group">
+                <input 
+                  type="text" 
+                  placeholder="Intelligence Search..."
+                  className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-64"
+                />
+                <svg className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
           
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Teacher Info
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Department & Class
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Subjects
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Actions
-                  </th>
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50">
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Personnel</th>
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Assignment</th>
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Expertise</th>
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Connectivity</th>
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+              <tbody className="divide-y divide-slate-50">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                      Loading teachers...
+                    <td colSpan={5} className="py-20 text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="mt-4 text-slate-500 font-bold text-sm">Syncing records...</p>
                     </td>
                   </tr>
                 ) : teachers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                      No teachers found. Add your first teacher!
+                    <td colSpan={5} className="py-32 text-center">
+                      <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-4">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-black text-slate-900 mb-2">No Personnel Identified</h3>
+                      <p className="text-slate-400 text-sm max-w-xs mx-auto">Start by onboarding your first teaching staff to begin evaluation telemetry.</p>
                     </td>
                   </tr>
                 ) : (
                   teachers.map((teacher) => (
-                  <tr key={teacher.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {teacher.name}
+                  <tr key={teacher.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="py-5 px-8">
+                      <div className="flex items-center gap-4">
+                        <div className="w-11 h-11 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black text-sm shadow-lg shadow-slate-200">
+                          {teacher.name.charAt(0)}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          ID: {teacher.employeeId}
+                        <div>
+                          <div className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                            {teacher.name}
+                          </div>
+                          <div className="text-[11px] font-medium text-slate-400">
+                            ID: {teacher.employeeId}
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm text-gray-900 dark:text-white">
+                    <td className="py-5 px-8">
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold text-slate-700">
                           {teacher.department}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <div className="text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md inline-block uppercase tracking-wider">
                           {teacher.class}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
+                    <td className="py-5 px-8">
+                      <div className="flex flex-wrap gap-1.5 max-w-[200px]">
                         {teacher.subjects.map((subjectName, index) => (
                           <span
                             key={index}
-                            className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-full"
+                            className="inline-flex px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded-md border border-slate-200"
                           >
                             {subjectName}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm text-gray-900 dark:text-white">
+                    <td className="py-5 px-8">
+                      <div className="space-y-1">
+                        <div className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-blue-500 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
                           {teacher.email}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <div className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-slate-400 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
                           {teacher.phone}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex space-x-2">
+                    <td className="py-5 px-8 text-right">
+                      <div className="flex justify-end gap-2">
                         <button
                           onClick={() => handleEdit(teacher)}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                          className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-xl transition-all group/btn"
+                          title="Edit Teacher"
                         >
-                          Edit
+                          <svg className="w-4 h-4 group-hover/btn:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
                         </button>
                         <button
                           onClick={() => handleDelete(teacher.id || '')}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                          className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all group/btn"
+                          title="Delete Teacher"
                         >
-                          Delete
+                          <svg className="w-4 h-4 group-hover/btn:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
                         </button>
                       </div>
                     </td>
@@ -337,166 +365,159 @@ export default function ManageTeachers() {
           </div>
         </div>
 
-        {/* Modal */}
+        {/* Premium Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 overflow-auto bg-gray-900 bg-opacity-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {editingTeacher ? 'Edit Teacher' : 'Add New Teacher'}
-                </h3>
-              </div>
+          <div className="fixed inset-0 z-[60] overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen p-4 text-center sm:p-0">
+              <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={resetForm}></div>
               
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative bg-white rounded-[3rem] text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-slate-100 animate-scale-up">
+                <div className="px-10 pt-10 pb-6 border-b border-slate-50 flex items-center justify-between">
                   <div>
-                    <label htmlFor="teacher-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Full Name
-                    </label>
-                    <input
-                      id="teacher-name"
-                      type="text"
-                      required
-                      placeholder="Enter full name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    />
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                      {editingTeacher ? 'Update Teacher Record' : 'Onboard New Teacher'}
+                    </h3>
+                    <p className="text-xs font-black text-slate-400 mt-1 uppercase tracking-widest">Fill in the professional details below</p>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Employee ID
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter employee ID"
-                      value={formData.employeeId}
-                      onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Department
-                    </label>
-                    <select
-                      required
-                      value={formData.department}
-                      onChange={(e) => setFormData({...formData, department: e.target.value})}
-                      aria-label="Select department"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    >
-                      <option value="">Select Department</option>
-                      {departments.length === 0 ? (
-                        <option disabled>No departments available - Add in Settings</option>
-                      ) : (
-                        departments.map(dept => (
-                          <option key={dept.id} value={dept.id}>{dept.name}</option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Class
-                    </label>
-                    <select
-                      required
-                      value={formData.class}
-                      onChange={(e) => setFormData({...formData, class: e.target.value})}
-                      aria-label="Select class"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    >
-                      <option value="">Select Class</option>
-                      {classes.length === 0 ? (
-                        <option disabled>No classes available - Add in Settings</option>
-                      ) : (
-                        classes.map(cls => (
-                          <option key={cls.id} value={cls.id}>{cls.name} - Year {cls.year}</option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="Enter email address"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Phone
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="Enter phone number"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
+                  <button onClick={resetForm} className="p-3 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-colors">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Subjects (Select multiple)
-                  </label>
-                  {subjects.length === 0 ? (
-                    <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700">
-                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                        No subjects available. Please add subjects in Settings → Subjects first.
-                      </p>
+                <form onSubmit={handleSubmit} className="p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label htmlFor="teacher-name" className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Full Name
+                      </label>
+                      <input
+                        id="teacher-name"
+                        type="text"
+                        required
+                        placeholder="e.g. John Doe"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
+                      />
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3">
+                    
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Employee ID
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. EMP-2024-001"
+                        value={formData.employeeId}
+                        onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Department
+                      </label>
+                      <select
+                        required
+                        value={formData.department}
+                        onChange={(e) => setFormData({...formData, department: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer"
+                      >
+                        <option value="">Select Department</option>
+                        {departments.map(dept => (
+                          <option key={dept.id} value={dept.id}>{dept.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Class Assignment
+                      </label>
+                      <select
+                        required
+                        value={formData.class}
+                        onChange={(e) => setFormData({...formData, class: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer"
+                      >
+                        <option value="">Select Class</option>
+                        {classes.map(cls => (
+                          <option key={cls.id} value={cls.id}>{cls.name} - Year {cls.year}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="teacher@olagshs.edu.gh"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="+233 00 000 0000"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 space-y-2">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                      Subject Specialization
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl max-h-40 overflow-y-auto scrollbar-hide">
                       {subjects.map(subject => (
-                        <label key={subject.id} htmlFor={`subject-${subject.id}`} className="flex items-center space-x-2">
+                        <label key={subject.id} className="flex items-center gap-3 p-2 bg-white rounded-xl border border-slate-100 hover:border-blue-200 cursor-pointer transition-all">
                           <input
-                            id={`subject-${subject.id}`}
                             type="checkbox"
                             checked={formData.subjects.includes(subject.name)}
                             onChange={() => handleSubjectChange(subject.name)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            aria-label={`Select ${subject.name} subject`}
-                            title={`Select ${subject.name} subject`}
+                            className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500/20"
                           />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{subject.name}</span>
+                          <span className="text-xs font-bold text-slate-700 truncate">{subject.name}</span>
                         </label>
                       ))}
                     </div>
-                  )}
-                </div>
-                
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700"
-                  >
-                    {editingTeacher ? 'Update Teacher' : 'Add Teacher'}
-                  </button>
-                </div>
-              </form>
+                  </div>
+                  
+                  <div className="flex items-center justify-end gap-4 mt-10">
+                    <button
+                      type="button"
+                      onClick={resetForm}
+                      className="px-6 py-3 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
+                    >
+                      Discard Changes
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-sm shadow-lg shadow-blue-100 transition-all disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {loading && <div className="w-4 h-4 border-2 border-white/30 border-b-white rounded-full animate-spin"></div>}
+                      {editingTeacher ? 'Update Staff Member' : 'Register Teacher'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         )}

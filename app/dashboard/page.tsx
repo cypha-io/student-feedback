@@ -190,133 +190,169 @@ export default function EvaluationOverview() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
+      <div className="space-y-8 pb-12">
+        {/* System Setup Guide - Help Section */}
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-blue-100 group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-400/20 rounded-full -ml-10 -mb-10 blur-2xl"></div>
+          
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/30">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-black tracking-tight uppercase tracking-[0.1em]">System Setup Roadmap</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[
+                { step: '01', title: 'Departments', desc: 'Define school units', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5' },
+                { step: '02', title: 'Subjects', desc: 'Map your curriculum', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
+                { step: '03', title: 'Classes', desc: 'Define year levels', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5' },
+                { step: '04', title: 'Teachers', desc: 'Assign subjects/classes', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+                { step: '05', title: 'Questions', desc: 'Build questionnaire', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                { step: '06', title: 'Students', desc: 'Import for access', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
+              ].map((item, idx) => (
+                <div key={idx} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300 group/item">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] font-black opacity-60 tracking-widest uppercase">{item.step}</span>
+                    <svg className="w-4 h-4 opacity-40 group-hover/item:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
+                    </svg>
+                  </div>
+                  <h4 className="text-xs font-black mb-1">{item.title}</h4>
+                  <p className="text-[9px] font-medium opacity-70 leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Teacher Evaluation Overview
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Comprehensive analytics for teacher performance evaluation system
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              Evaluation Overview
+            </h2>
+            <p className="text-slate-500 mt-1 text-sm font-medium">
+              Real-time analytics and performance metrics for OLAG SHS
             </p>
           </div>
           
-          <div className="flex space-x-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Live System</span>
+            </div>
             <button
               onClick={fetchDashboardData}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 shadow-xl shadow-blue-100 flex items-center gap-2 group active:scale-95"
             >
+              <svg className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
               Refresh Data
             </button>
           </div>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Teachers</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalTeachers}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Evaluations</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalEvaluations}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Average Score</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.averageScore.toFixed(1)}%</p>
-                <p className={`text-sm font-medium ${getPerformanceColor(stats.averageScore)}`}>
-                  {PERFORMANCE_RATINGS.find(r => stats.averageScore >= r.min && stats.averageScore <= r.max)?.label || 'No Rating'}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
+        {/* Core Metrics Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { label: 'Total Teachers', value: stats.totalTeachers, icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', color: 'blue' },
+            { label: 'Total Evaluations', value: stats.totalEvaluations, icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', color: 'indigo' },
+            { label: 'Average Score', value: `${stats.averageScore.toFixed(1)}%`, icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: 'amber', sub: PERFORMANCE_RATINGS.find(r => stats.averageScore >= r.min && stats.averageScore <= r.max)?.label },
+            { label: 'Total Responses', value: stats.totalResponses, icon: 'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z', color: 'purple' }
+          ].map((stat, idx) => (
+            <div key={idx} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden group">
+              <div className={`absolute top-0 right-0 w-24 h-24 bg-${stat.color}-50 rounded-bl-full opacity-50 -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-500`}></div>
+              <div className="relative flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                  <p className="text-3xl font-black text-slate-900 tracking-tight">{stat.value}</p>
+                  {stat.sub && (
+                    <p className={`text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full inline-block ${getPerformanceBg(stats.averageScore)} ${getPerformanceColor(stats.averageScore)}`}>
+                      {stat.sub}
+                    </p>
+                  )}
+                </div>
+                <div className={`w-12 h-12 bg-${stat.color}-50 rounded-2xl flex items-center justify-center text-${stat.color}-600 group-hover:scale-110 transition-transform`}>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={stat.icon} />
+                  </svg>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Responses</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalResponses}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Performance Distribution */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Teacher Performance Distribution</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-green-600">Excellent (85-100%)</span>
-                <span className="text-sm font-bold text-gray-900">{stats.excellentTeachers} teachers</span>
+        {/* Detailed Analytics Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Performance Distribution */}
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
+              <h3 className="text-lg font-black text-slate-900 tracking-tight">Performance Distribution</h3>
+              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                </svg>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-orange-600">Needs Improvement (&lt;60%)</span>
-                <span className="text-sm font-bold text-gray-900">{stats.needsImprovement} teachers</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-blue-600">Above Average (60-84%)</span>
-                <span className="text-sm font-bold text-gray-900">
-                  {stats.totalTeachers - stats.excellentTeachers - stats.needsImprovement} teachers
-                </span>
-              </div>
+            </div>
+            <div className="p-8 space-y-6">
+              {[
+                { label: 'Excellent', range: '85-100%', count: stats.excellentTeachers, color: 'emerald' },
+                { label: 'Above Average', range: '60-84%', count: stats.totalTeachers - stats.excellentTeachers - stats.needsImprovement, color: 'blue' },
+                { label: 'Needs Improvement', range: '<60%', count: stats.needsImprovement, color: 'rose' }
+              ].map((item, idx) => (
+                <div key={idx} className="group">
+                  <div className="flex justify-between items-end mb-2">
+                    <div>
+                      <span className={`text-sm font-bold text-${item.color}-600 block`}>{item.label}</span>
+                      <span className="text-[10px] font-medium text-slate-400">{item.range}</span>
+                    </div>
+                    <span className="text-sm font-black text-slate-900">{item.count} teachers</span>
+                  </div>
+                  <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                    <div 
+                      className={`h-full bg-${item.color}-500 rounded-full transition-all duration-1000 ease-out shadow-sm`}
+                      style={{ width: `${(item.count / (stats.totalTeachers || 1)) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Section Performance Averages</h3>
-            <div className="space-y-3">
+          {/* Section Averages */}
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
+              <h3 className="text-lg font-black text-slate-900 tracking-tight">Section Performance</h3>
+              <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                </svg>
+              </div>
+            </div>
+            <div className="p-8 h-[400px] overflow-y-auto scrollbar-hide space-y-4">
               {Object.entries(EVALUATION_SECTIONS).map(([section, title]) => (
-                <div key={section} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded text-xs font-bold flex items-center justify-center">
+                <div key={section} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 bg-blue-100 text-blue-700 rounded-xl text-xs font-black flex items-center justify-center shadow-sm">
                       {section}
                     </span>
-                    <span className="text-sm text-gray-700">{title}</span>
+                    <span className="text-sm font-bold text-slate-700">{title}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-gray-900">
+                  <div className="text-right">
+                    <span className="text-sm font-black text-slate-900 block">
                       {(stats.sectionAverages[section] || 0).toFixed(1)}%
                     </span>
-                    <div className="w-16 h-2 bg-gray-200 rounded-full">
+                    <div className="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
                       <div 
-                        className="h-2 bg-blue-500 rounded-full transition-all duration-500"
-                        style={{
-                          width: `${Math.min(stats.sectionAverages[section] || 0, 100)}%`
-                        }}
+                        className="h-full bg-blue-500 rounded-full"
+                        style={{ width: `${Math.min(stats.sectionAverages[section] || 0, 100)}%` }}
                       ></div>
                     </div>
                   </div>
@@ -326,39 +362,62 @@ export default function EvaluationOverview() {
           </div>
         </div>
 
-        {/* Recent Evaluations */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Teacher Evaluations</h3>
+        {/* Recent Activity Table */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-black text-slate-900 tracking-tight">Recent Evaluations</h3>
+              <p className="text-xs font-medium text-slate-500 mt-0.5">Latest teacher feedback submissions</p>
+            </div>
+            <button className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition-colors">
+              View All
+            </button>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Teacher</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Department</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Score</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Rating</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Date</th>
+                <tr className="bg-slate-50/50">
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Teacher</th>
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Department</th>
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Score</th>
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Rating</th>
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Date</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-50">
                 {stats.recentEvaluations.map((evaluation, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium text-gray-900">{evaluation.teacherName}</td>
-                    <td className="py-3 px-4 text-gray-600">{evaluation.department}</td>
-                    <td className="py-3 px-4 font-medium">{evaluation.score.toFixed(1)}%</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPerformanceBg(evaluation.score)} ${getPerformanceColor(evaluation.score)}`}>
+                  <tr key={index} className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="py-4 px-8">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 font-bold text-xs">
+                          {evaluation.teacherName.charAt(0)}
+                        </div>
+                        <span className="text-sm font-bold text-slate-900">{evaluation.teacherName}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-8 text-sm font-medium text-slate-600">{evaluation.department}</td>
+                    <td className="py-4 px-8">
+                      <span className="text-sm font-black text-slate-900">{evaluation.score.toFixed(1)}%</span>
+                    </td>
+                    <td className="py-4 px-8">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${getPerformanceBg(evaluation.score)} ${getPerformanceColor(evaluation.score)}`}>
                         {evaluation.rating}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-gray-600">{evaluation.date}</td>
+                    <td className="py-4 px-8 text-sm font-medium text-slate-500">{evaluation.date}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {stats.recentEvaluations.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No evaluations found. Start collecting teacher feedback to see data here.
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300 mb-4">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p className="text-slate-500 font-bold">No recent evaluations found</p>
+                <p className="text-slate-400 text-xs mt-1">Start collecting feedback to populate this table</p>
               </div>
             )}
           </div>

@@ -64,6 +64,8 @@ export const dbHelpers = {
         return TABLES.FEEDBACKS;
       case 'responses':
         return TABLES.RESPONSES;
+      case 'admins':
+        return TABLES.ADMINS;
       default:
         throw new Error(`Unknown collection: ${collectionName}`);
     }
@@ -278,6 +280,14 @@ export const dbHelpers = {
         return this.getAllFeedbacks();
       case 'responses':
         return this.getAllResponses();
+      case 'admins':
+        try {
+          const result = await db.select().from(TABLES.ADMINS);
+          return { documents: result };
+        } catch (error) {
+          console.error('Error fetching admins:', error);
+          throw error;
+        }
       default:
         throw new Error(`Unknown collection: ${collectionName}`);
     }
@@ -336,4 +346,5 @@ export const COLLECTIONS = {
   QUESTIONS: 'questions',
   FEEDBACKS: 'feedbacks',
   RESPONSES: 'responses',
+  ADMINS: 'admins',
 };

@@ -70,6 +70,18 @@ export default function StudentResponsesPage() {
     loadResponses();
   }, []);
 
+  // Lock background scroll when modal is open
+  useEffect(() => {
+    if (showDetailsModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showDetailsModal]);
+
   const calculatePerformanceGrade = (score: number): string => {
     if (score >= 4.5) return 'Excellent';
     if (score >= 3.5) return 'Good';
@@ -82,15 +94,15 @@ export default function StudentResponsesPage() {
       setLoading(true);
       setError(null);
       
-      console.log('🔍 Fetching feedbacks from database...');
+      console.log('Fetching feedbacks from database...');
       
       // Fetch feedbacks using new Neon database
       const feedbacksResult = await dbHelpers.getAll(COLLECTIONS.FEEDBACKS);
       
-      console.log('📊 Feedbacks fetched:', feedbacksResult.documents.length);
+      console.log('Feedbacks fetched:', feedbacksResult.documents.length);
       
       if (feedbacksResult.documents.length === 0) {
-        console.log('⚠️ No feedbacks found in database');
+        console.log('No feedbacks found in database');
         setResponses([]);
         return;
       }
@@ -98,7 +110,7 @@ export default function StudentResponsesPage() {
       // Fetch all responses
       const responsesResult = await dbHelpers.getAll(COLLECTIONS.RESPONSES);
       
-      console.log('📝 Responses fetched:', responsesResult.documents.length);
+      console.log('Responses fetched:', responsesResult.documents.length);
 
       // Update debug info
       setDebugInfo({
@@ -167,10 +179,10 @@ export default function StudentResponsesPage() {
       }
       
       setResponses(processedResponses);
-      console.log('✅ Processed responses:', processedResponses.length);
+      console.log('Processed responses:', processedResponses.length);
       
     } catch (error) {
-      console.error('❌ Error fetching responses:', error);
+      console.error('Error fetching responses:', error);
       setError(`Failed to load responses: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
@@ -281,110 +293,109 @@ export default function StudentResponsesPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Student Responses</h1>
-              <p className="text-gray-600">View and analyze all student feedback submissions</p>
+      <div className="space-y-8 pb-12">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              Evaluation Intelligence
+            </h2>
+            <p className="text-slate-500 mt-1 text-sm font-medium">
+              Analyze individual student submissions and performance metrics
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="px-5 py-2.5 bg-blue-50 border border-blue-100 rounded-2xl">
+              <span className="text-xs font-black text-blue-600 uppercase tracking-widest">{responses.length} Submissions</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-50 px-4 py-2 rounded-lg">
-                <span className="text-blue-700 font-semibold">{responses.length} Total Responses</span>
-              </div>
-              {process.env.NODE_ENV === 'development' && (
-                <button
-                  onClick={() => setShowDebugInfo(!showDebugInfo)}
-                  className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                  title="Show debug information"
-                >
-                  🐛 Debug
-                </button>
-              )}
-            </div>
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={() => setShowDebugInfo(!showDebugInfo)}
+                className="p-2.5 bg-slate-100 text-slate-500 hover:bg-slate-900 hover:text-white rounded-2xl transition-all group active:scale-95"
+                title="System Diagnostics"
+              >
+                <svg className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Debug Panel (Development Only) */}
-        {process.env.NODE_ENV === 'development' && showDebugInfo && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-yellow-900 mb-4">🐛 Debug Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <h3 className="font-medium text-yellow-900 mb-2">Environment Variables:</h3>
-                <ul className="space-y-1 text-yellow-800">
-                  <li>Database URL: {process.env.DATABASE_URL ? '✅ Set' : '❌ Missing'}</li>
-                  <li>Database Type: Neon PostgreSQL</li>
-                </ul>
+        {/* Intelligence Metrics */}
+        {filteredAndSortedResponses.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            {[
+              { label: 'Total Volume', value: filteredAndSortedResponses.length, color: 'blue', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+              { label: 'Aggregate GPA', value: (filteredAndSortedResponses.reduce((sum, r) => sum + r.overallScore, 0) / filteredAndSortedResponses.length).toFixed(2), color: 'emerald', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
+              { label: 'Staff Coverage', value: uniqueTeachers.length, color: 'indigo', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
+              { label: 'Elite Ratings', value: filteredAndSortedResponses.filter(r => r.performanceGrade === 'Excellent').length, color: 'rose', icon: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z' }
+            ].map((stat, i) => (
+              <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center text-center group hover:border-blue-100 hover:shadow-xl hover:shadow-slate-200/50 transition-all">
+                <div className={`w-12 h-12 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={stat.icon} />
+                  </svg>
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                <p className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</p>
               </div>
-              <div>
-                <h3 className="font-medium text-yellow-900 mb-2">Database Status:</h3>
-                <ul className="space-y-1 text-yellow-800">
-                  <li>Total Feedbacks in DB: {debugInfo.totalFeedbacks}</li>
-                  <li>Total Responses in DB: {debugInfo.totalResponses}</li>
-                  <li>Environment OK: {debugInfo.environmentOk ? '✅ Yes' : '❌ No'}</li>
-                  <li>Last Fetch: {debugInfo.lastFetch ? new Date(debugInfo.lastFetch).toLocaleTimeString() : 'Never'}</li>
-                </ul>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
-        {/* Filters and Search */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-              <input
-                type="text"
-                placeholder="Search by teacher or student name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+        {/* Discovery & Filters */}
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Feedbacks</label>
+              <div className="relative group">
+                <input
+                  type="text"
+                  placeholder="ID or Teacher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                />
+                <svg className="absolute left-4 top-4 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
             </div>
 
-            {/* Teacher Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Teacher</label>
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Staff Filter</label>
               <select
                 value={filterTeacher}
                 onChange={(e) => setFilterTeacher(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                aria-label="Filter by teacher"
+                className="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer"
               >
-                <option value="">All Teachers</option>
+                <option value="">All Personnel</option>
                 {uniqueTeachers.map(teacher => (
                   <option key={teacher} value={teacher}>{teacher}</option>
                 ))}
               </select>
             </div>
 
-            {/* Sort By */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Order By</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'date' | 'score' | 'teacher')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                aria-label="Sort by field"
+                className="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer"
               >
-                <option value="date">Date</option>
-                <option value="score">Score</option>
-                <option value="teacher">Teacher</option>
+                <option value="date">Submission Date</option>
+                <option value="score">Performance Score</option>
+                <option value="teacher">Alphabetical (Staff)</option>
               </select>
             </div>
 
-            {/* Sort Order */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Order</label>
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Direction</label>
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                aria-label="Sort order"
+                className="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer"
               >
                 <option value="desc">Descending</option>
                 <option value="asc">Ascending</option>
@@ -393,236 +404,161 @@ export default function StudentResponsesPage() {
           </div>
         </div>
 
-        {/* Responses List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          {filteredAndSortedResponses.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="text-gray-400 mb-4">
-                <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No feedback responses found</h3>
-              <p className="text-gray-600 mb-4">
-                {responses.length === 0 
-                  ? "No student feedback has been submitted yet. Students need to submit feedback through the feedback form first."
-                  : "No responses match your current filters."
-                }
-              </p>
-              {responses.length === 0 && (
-                <div className="bg-blue-50 rounded-lg p-4 text-left max-w-md mx-auto">
-                  <h4 className="font-semibold text-blue-900 mb-2">To see feedback responses:</h4>
-                  <ol className="text-sm text-blue-800 space-y-1">
-                    <li>1. Students must visit the feedback form</li>
-                    <li>2. Complete and submit their evaluations</li>
-                    <li>3. Responses will then appear here automatically</li>
-                  </ol>
-                  <div className="mt-3 pt-3 border-t border-blue-200">
-                    <p className="text-xs text-blue-700">
-                      <strong>Note:</strong> In production, ensure environment variables are properly configured and database collections have the correct permissions.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Teacher
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Student
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Overall Score
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Performance
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Submitted
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredAndSortedResponses.map((response) => (
-                      <tr key={response.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="font-medium text-gray-900">{response.teacherName}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-gray-600">{response.studentId || 'Anonymous'}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="text-lg font-semibold text-gray-900">
-                              {response.overallScore.toFixed(1)}
-                            </div>
-                            <div className="text-sm text-gray-500 ml-1">/5.0</div>
+        {/* Data Table */}
+        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50">
+                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Personnel</th>
+                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Submitter</th>
+                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Efficiency Score</th>
+                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Rating</th>
+                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Timestamp</th>
+                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filteredAndSortedResponses.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-32 text-center">
+                      <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-6">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-black text-slate-900 mb-2">No Records Found</h3>
+                      <p className="text-slate-400 text-sm max-w-xs mx-auto">Either no evaluations have been submitted yet, or your filter parameters are too restrictive.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAndSortedResponses.map((response) => (
+                    <tr key={response.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="py-6 px-8">
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black text-xs shadow-lg shadow-slate-200">
+                            {response.teacherName.charAt(0)}
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPerformanceColor(response.performanceGrade)}`}>
-                            {response.performanceGrade}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {formatDate(response.createdAt)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button 
-                            onClick={() => handleViewDetails(response)}
-                            className="text-blue-600 hover:text-blue-900 transition-colors"
-                          >
-                            View Details
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Summary Stats */}
-        {filteredAndSortedResponses.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {filteredAndSortedResponses.length}
-                </div>
-                <div className="text-sm text-gray-600">Total Responses</div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {(filteredAndSortedResponses.reduce((sum, r) => sum + r.overallScore, 0) / filteredAndSortedResponses.length).toFixed(1)}
-                </div>
-                <div className="text-sm text-gray-600">Average Score</div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {uniqueTeachers.length}
-                </div>
-                <div className="text-sm text-gray-600">Teachers Evaluated</div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {filteredAndSortedResponses.filter(r => r.performanceGrade === 'Excellent').length}
-                </div>
-                <div className="text-sm text-gray-600">Excellent Ratings</div>
-              </div>
-            </div>
+                          <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{response.teacherName}</div>
+                        </div>
+                      </td>
+                      <td className="py-6 px-8">
+                        <div className="text-[10px] font-black text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 inline-block uppercase tracking-widest">
+                          {response.studentId || 'Anonymous'}
+                        </div>
+                      </td>
+                      <td className="py-6 px-8 text-center">
+                        <div className="text-sm font-black text-slate-900">
+                          {response.overallScore.toFixed(2)}
+                        </div>
+                        <div className="w-24 h-1.5 bg-slate-100 rounded-full mx-auto mt-2 overflow-hidden">
+                          <div 
+                            className="h-full bg-blue-600 rounded-full" 
+                            style={{ width: `${(response.overallScore / 5) * 100}%` }}
+                          ></div>
+                        </div>
+                      </td>
+                      <td className="py-6 px-8">
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                          response.performanceGrade === 'Excellent' ? 'bg-emerald-50 text-emerald-600' :
+                          response.performanceGrade === 'Good' ? 'bg-blue-50 text-blue-600' :
+                          response.performanceGrade === 'Average' ? 'bg-amber-50 text-amber-600' :
+                          'bg-rose-50 text-rose-600'
+                        }`}>
+                          {response.performanceGrade}
+                        </span>
+                      </td>
+                      <td className="py-6 px-8">
+                        <div className="text-xs font-bold text-slate-500">
+                          {new Date(response.submittedAt || response.createdAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {new Date(response.submittedAt || response.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </td>
+                      <td className="py-6 px-8 text-right">
+                        <button 
+                          onClick={() => handleViewDetails(response)}
+                          className="px-5 py-2.5 bg-slate-900 hover:bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-slate-200 hover:shadow-blue-100"
+                        >
+                          Review Report
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Details Modal */}
+      {/* Intelligence Detail Modal */}
       {showDetailsModal && selectedResponse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Feedback Details</h2>
-                  <p className="text-gray-600 mt-1">
-                    Submitted on {formatDate(selectedResponse.createdAt)}
-                  </p>
+        <div className="fixed inset-0 z-[70] overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen p-4 sm:p-0">
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity" onClick={closeDetailsModal}></div>
+            
+            <div className="relative bg-[#F8FAFC] rounded-[3rem] text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full border border-white/20 animate-scale-up">
+              {/* Modal Header */}
+              <div className="px-10 py-10 bg-white border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-slate-900 text-white rounded-[2rem] flex items-center justify-center font-black text-xl shadow-xl shadow-slate-200">
+                    {selectedResponse.teacherName.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Personnel Intelligence Report</h3>
+                    <p className="text-xs font-black text-blue-600 uppercase tracking-widest mt-1">Generated for Submitter: {selectedResponse.studentId || 'ANONYMOUS'}</p>
+                  </div>
                 </div>
-                <button
-                  onClick={closeDetailsModal}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  aria-label="Close modal"
-                >
+                <button onClick={closeDetailsModal} className="w-12 h-12 bg-slate-100 text-slate-500 hover:bg-slate-900 hover:text-white rounded-2xl transition-all flex items-center justify-center">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
-            </div>
 
-            {/* Modal Content */}
-            <div className="p-6 space-y-6">
-              {/* Basic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">Basic Information</h3>
-                  <div className="space-y-2">
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">Teacher:</span>
-                      <span className="ml-2 text-gray-900">{selectedResponse.teacherName}</span>
+              {/* Modal Content */}
+              <div className="p-10 space-y-10">
+                {/* Summary Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Overall Proficiency</p>
+                    <div className="flex items-end gap-2">
+                      <span className="text-5xl font-black text-slate-900 tracking-tighter">{selectedResponse.overallScore.toFixed(1)}</span>
+                      <span className="text-xl font-black text-slate-300 mb-1">/ 5.0</span>
                     </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">Student ID:</span>
-                      <span className="ml-2 text-gray-900">{selectedResponse.studentId || 'Anonymous'}</span>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">Overall Score:</span>
-                      <span className="ml-2 text-gray-900 font-semibold">{selectedResponse.overallScore.toFixed(1)}/5.0</span>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-600">Performance Grade:</span>
-                      <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${getPerformanceColor(selectedResponse.performanceGrade)}`}>
-                        {selectedResponse.performanceGrade}
-                      </span>
-                    </div>
+                  </div>
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Performance Grade</p>
+                    <span className={`inline-flex px-4 py-2 text-sm font-black rounded-xl uppercase tracking-widest self-start ${getPerformanceColor(selectedResponse.performanceGrade)}`}>
+                      {selectedResponse.performanceGrade}
+                    </span>
+                  </div>
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Submission Date</p>
+                    <p className="text-sm font-bold text-slate-900">{formatDate(selectedResponse.createdAt)}</p>
                   </div>
                 </div>
 
-                {/* Section Scores */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">Section Scores</h3>
-                  <div className="space-y-2">
-                    {selectedResponse.sectionScores && Object.entries(selectedResponse.sectionScores).map(([section, score]) => (
-                      <div key={section} className="flex justify-between">
-                        <span className="text-sm font-medium text-gray-600">Section {section}:</span>
-                        <span className="text-gray-900 font-semibold">{score.toFixed(1)}/5.0</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Individual Responses */}
-              {selectedResponse.responses && Object.keys(selectedResponse.responses).length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">Individual Question Responses</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(selectedResponse.responses).map(([question, rating]) => (
-                      <div key={question} className="bg-white rounded-lg p-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-700">{question}</span>
-                          <div className="flex items-center">
-                            <span className="text-lg font-bold text-blue-600">{rating}</span>
-                            <span className="text-sm text-gray-500 ml-1">/5</span>
+                {/* Section Intelligence */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Sectional Performance Analysis</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {Object.entries(selectedResponse.sectionScores).map(([section, score]) => (
+                      <div key={section} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-slate-50 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="relative z-10">
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="w-8 h-8 bg-slate-900 text-white rounded-xl text-[10px] font-black flex items-center justify-center shadow-lg">
+                              {section}
+                            </span>
+                            <span className="text-lg font-black text-slate-900">{score.toFixed(1)}</span>
                           </div>
-                        </div>
-                        <div className="mt-2">
-                          <div className={styles.progressBar}>
+                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div 
-                              className={`${styles.progressFill} ${
-                                rating === 1 ? styles.progressFill20 :
-                                rating === 2 ? styles.progressFill40 :
-                                rating === 3 ? styles.progressFill60 :
-                                rating === 4 ? styles.progressFill80 :
-                                styles.progressFill100
-                              }`}
+                              className="h-full bg-blue-600 transition-all duration-1000"
+                              style={{ width: `${(score / 5) * 100}%` }}
                             ></div>
                           </div>
                         </div>
@@ -630,24 +566,56 @@ export default function StudentResponsesPage() {
                     ))}
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Modal Footer */}
-            <div className="p-6 border-t border-gray-200">
-              <div className="flex justify-end">
+                {/* Detailed Feedbacks */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Individual Parameter Breakdown</h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    {Object.entries(selectedResponse.responses).map(([question, rating]) => (
+                      <div key={question} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:border-blue-100 transition-all flex items-center justify-between gap-10">
+                        <p className="text-sm font-bold text-slate-700 flex-1">{question}</p>
+                        <div className="flex items-center gap-6 shrink-0">
+                          <div className="flex gap-1.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <div 
+                                key={star} 
+                                className={`w-3 h-3 rounded-full ${star <= rating ? 'bg-blue-600' : 'bg-slate-100'}`}
+                              ></div>
+                            ))}
+                          </div>
+                          <div className="w-12 text-right">
+                            <span className="text-xl font-black text-slate-900">{rating}</span>
+                            <span className="text-[10px] font-black text-slate-300 ml-1">/5</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-10 py-8 bg-white border-t border-slate-100 flex justify-end gap-4">
+                <button
+                  onClick={() => window.print()}
+                  className="px-6 py-3 border border-slate-200 text-slate-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  Export PDF
+                </button>
                 <button
                   onClick={closeDetailsModal}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-slate-200"
                 >
-                  Close
+                  Dismiss Report
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-
     </DashboardLayout>
     </ProtectedRoute>
   );

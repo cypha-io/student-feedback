@@ -7,12 +7,44 @@ import styles from './feedback.module.css';
 import { FEEDBACK_SECTIONS } from '@/lib/feedback-questions';
 
 const RATING_OPTIONS = [
-  { value: 5, label: 'Always', emoji: '🌟', color: 'bg-green-500 hover:bg-green-600', description: 'This happens all the time' },
-  { value: 4, label: 'Often', emoji: '👍', color: 'bg-blue-500 hover:bg-blue-600', description: 'This happens frequently' },
-  { value: 3, label: 'Sometimes', emoji: '👌', color: 'bg-indigo-500 hover:bg-indigo-600', description: 'This happens occasionally' },
-  { value: 2, label: 'Rarely', emoji: '⚠️', color: 'bg-yellow-500 hover:bg-yellow-600', description: 'This rarely happens' },
-  { value: 1, label: 'Never', emoji: '❌', color: 'bg-red-500 hover:bg-red-600', description: 'This never happens' }
+  { value: 5, label: 'Always', color: 'bg-green-500 hover:bg-green-600', description: 'This happens all the time' },
+  { value: 4, label: 'Often', color: 'bg-blue-500 hover:bg-blue-600', description: 'This happens frequently' },
+  { value: 3, label: 'Sometimes', color: 'bg-indigo-500 hover:bg-indigo-600', description: 'This happens occasionally' },
+  { value: 2, label: 'Rarely', color: 'bg-yellow-500 hover:bg-yellow-600', description: 'This rarely happens' },
+  { value: 1, label: 'Never', color: 'bg-red-500 hover:bg-red-600', description: 'This never happens' }
 ];
+
+const RatingIcon = ({ value }: { value: number }) => {
+  if (value >= 4) {
+    return (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.719c-.783-.57-.38-1.81.588-1.81H7.03a1 1 0 00.951-.69l1.07-3.292z" />
+      </svg>
+    );
+  }
+
+  if (value === 3) {
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M12 16v.01M12 8v.01" />
+      </svg>
+    );
+  }
+
+  if (value === 2) {
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M10.29 3.86l-8 14A2 2 0 004 21h16a2 2 0 001.71-3.14l-8-14a2 2 0 00-3.42 0z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+};
 
 export default function StudentFeedback() {
   const router = useRouter();
@@ -54,7 +86,7 @@ export default function StudentFeedback() {
       if (savedSettings) {
         try {
           const settings = JSON.parse(savedSettings);
-          setSiteTitle(settings.siteTitle || 'SMEI - Cypha Inc.');
+          setSiteTitle(settings.siteTitle || 'SMEI');
         } catch (error) {
           console.error('Error loading settings:', error);
         }
@@ -443,7 +475,7 @@ export default function StudentFeedback() {
                               }`}
                               title={option.description}
                             >
-                              <span className="text-2xl mb-1">{option.emoji}</span>
+                              <span className="mb-1"><RatingIcon value={option.value} /></span>
                               <span className="font-bold text-lg">{option.value}</span>
                               <span className="text-xs font-medium">{option.label}</span>
                             </button>
@@ -487,13 +519,13 @@ export default function StudentFeedback() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">🎉 Thank You!</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">Thank You!</h2>
                 <p className="text-gray-600 text-lg mb-8">
                   Your feedback has been submitted successfully and will help improve education quality.
                 </p>
                 
                 <div className="bg-green-50 p-6 rounded-xl border border-green-200 mb-8">
-                  <h3 className="font-bold text-gray-900 mb-4">📋 Evaluation Summary</h3>
+                  <h3 className="font-bold text-gray-900 mb-4">Evaluation Summary</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
                     <p><span className="font-semibold">Teacher:</span> {teachers.find(t => t.id === selectedTeacher)?.name}</p>
                     <p><span className="font-semibold">Subject:</span> {subjects.find(s => s.id === selectedSubject)?.name}</p>
@@ -531,7 +563,7 @@ export default function StudentFeedback() {
                 {/* Software Attribution */}
                 <div className="text-center pt-4 border-t border-gray-200">
                   <p className="text-xs text-gray-500">
-                    SMEI - Cypha Inc. by Chamba Nanang | Deployed for OLAGSHS
+                    SMEI by SwapGPA Technologies Limited | Deployed for OLAGSHS
                   </p>
                 </div>
               </div>

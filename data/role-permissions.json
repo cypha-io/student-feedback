@@ -1,0 +1,22 @@
+{
+  "superadmin": [
+    "viewOverview",
+    "manageTeachers",
+    "manageQuestions",
+    "viewReports",
+    "viewResponses",
+    "manageSettings",
+    "manageUsers"
+  ],
+  "manager": [
+    "viewOverview",
+    "manageTeachers",
+    "manageQuestions",
+    "viewReports",
+    "viewResponses"
+  ],
+  "viewer": [
+    "viewOverview",
+    "viewReports"
+  ]
+}

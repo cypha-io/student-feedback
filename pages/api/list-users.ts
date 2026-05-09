@@ -1,19 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { Client, Users } from 'node-appwrite';
+import { db, TABLES } from '../../lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const client = new Client()
-    .setEndpoint(process.env.APPWRITE_ENDPOINT!)
-    .setProject(process.env.APPWRITE_PROJECT_ID!)
-    .setKey(process.env.APPWRITE_API_KEY!);
-
-  const users = new Users(client);
-
   try {
-    const result = await users.list();
-    res.status(200).json({ count: result.total, users: result.users });
+    const students = await db.select().from(TABLES.STUDENTS);
+    const users = students.map((student) => ({
+      id: student.id,
+      name: student.name,
+      email: student.email,
+      role: 'student',
+      createdAt: student.createdAt,
+    }));
+
+    res.status(200).json({ count: users.length, users });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to fetch users from Appwrite Auth.' });
+    res.status(500).json({ error: 'Failed to fetch users from Neon database.' });
   }
 }

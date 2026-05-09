@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SMEI - Cypha Inc. | Teacher Feedback System | OLAGSHS",
-  description: "Student-Teacher Evaluation & Management Intelligence by Chamba Nanang - Cypha Inc. Deployed for Our Lady of Grace Senior High School (OLAGSHS)",
+  title: "SMEI | Teacher Feedback System | OLAGSHS",
+  description: "Student-Teacher Evaluation & Management Intelligence by SwapGPA Technologies Limited. Deployed for Our Lady of Grace Senior High School (OLAGSHS)",
 };
 
 export default function RootLayout({

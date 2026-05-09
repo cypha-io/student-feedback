@@ -1,8 +1,8 @@
 {
-  "name": "smei-cypha-inc",
+  "name": "olag-shs-feedback",
   "version": "1.0.0",
-  "description": "SMEI - Student-Teacher Evaluation & Management Intelligence by Chamba Nanang - Cypha Inc.",
-  "author": "Chamba Nanang - Cypha Inc.",
+  "description": "Student-Teacher Evaluation & Management Intelligence for OLAG Senior High School.",
+  "author": "SwapGPA Technologies Limited",
   "license": "MIT",
   "private": true,
   "scripts": {

@@ -162,3 +162,14 @@ export const responsesRelations = relations(responses, ({ one }) => ({
 export const questionsRelations = relations(questions, ({ many }) => ({
   responses: many(responses),
 }));
+
+// Admins table for authentication
+export const admins = pgTable('admins', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  email: text('email').notNull().unique(),
+  password: text('password').notNull(),
+  fullName: text('full_name').notNull(),
+  role: text('role').notNull().default('manager'), // 'superadmin', 'manager', 'viewer'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});

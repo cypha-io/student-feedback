@@ -74,6 +74,7 @@ export const TABLES = {
   QUESTIONS: schema.questions,
   FEEDBACKS: schema.feedbacks,
   RESPONSES: schema.responses,
+  ADMINS: schema.admins,
 };
 
 // Export schema and utilities

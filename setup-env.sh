@@ -13,24 +13,14 @@ if [ ! -f ".env.local" ]; then
     
     cat > .env.local << 'EOF'
 # Neon Database Configuration
-DATABASE_URL=postgresql://neondb_owner:npg_fz3xrnXlJgc6@ep-flat-fog-adsk3osy-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
-
-# Appwrite Configuration (for data migration - optional)
-NEXT_PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
-NEXT_PUBLIC_APPWRITE_PROJECT_ID=68567c270022407815f0
-NEXT_PUBLIC_APPWRITE_DATABASE_ID=68567c3a002af4b231c1
-NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID=teachers
-NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID=students
-NEXT_PUBLIC_APPWRITE_SUBJECTS_COLLECTION_ID=subjects
-NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID=classes
-NEXT_PUBLIC_APPWRITE_DEPARTMENTS_COLLECTION_ID=departments
-NEXT_PUBLIC_APPWRITE_HOUSES_COLLECTION_ID=houses
-NEXT_PUBLIC_APPWRITE_QUESTIONS_COLLECTION_ID=questions
-NEXT_PUBLIC_APPWRITE_FEEDBACKS_COLLECTION_ID=feedbacks
-NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID=responses
+DATABASE_URL=postgresql://YOUR_NEON_DATABASE_CONNECTION_STRING
 
 # Optional: For production deployments
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Optional: Admin login override
+NEXT_PUBLIC_ADMIN_EMAIL=admin@olagshs.edu.gh
+NEXT_PUBLIC_ADMIN_PASSWORD=change-this-password
 EOF
     
     echo "✅ Created .env.local template"
