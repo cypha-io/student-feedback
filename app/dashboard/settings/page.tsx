@@ -68,25 +68,7 @@ export default function Settings() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Load data on component mount and when tab changes
-  useEffect(() => {
-    if (activeTab === 'houses') {
-      fetchHouses();
-    } else if (activeTab === 'subjects') {
-      fetchSubjects();
-    } else if (activeTab === 'classes') {
-      fetchClasses();
-    } else if (activeTab === 'departments') {
-      fetchDepartments();
-    } else if (activeTab === 'roles') {
-      fetchRolePermissions();
-    }
-    
-    const savedSettings = localStorage.getItem('websiteSettings');
-    if (savedSettings) {
-      setWebsiteSettings(JSON.parse(savedSettings));
-    }
-  }, [activeTab, fetchHouses, fetchSubjects, fetchClasses, fetchDepartments, fetchRolePermissions]);
+
 
   // Lock background scroll when modals are open
   useEffect(() => {
@@ -218,6 +200,26 @@ export default function Settings() {
       setLoading(false);
     }
   }, []);
+
+  // Load data on component mount and when tab changes
+  useEffect(() => {
+    if (activeTab === 'houses') {
+      fetchHouses();
+    } else if (activeTab === 'subjects') {
+      fetchSubjects();
+    } else if (activeTab === 'classes') {
+      fetchClasses();
+    } else if (activeTab === 'departments') {
+      fetchDepartments();
+    } else if (activeTab === 'roles') {
+      fetchRolePermissions();
+    }
+    
+    const savedSettings = localStorage.getItem('websiteSettings');
+    if (savedSettings) {
+      setWebsiteSettings(JSON.parse(savedSettings));
+    }
+  }, [activeTab, fetchHouses, fetchSubjects, fetchClasses, fetchDepartments, fetchRolePermissions]);
 
   // Fetch departments for subject modal
   const fetchDepartmentsForModal = async () => {
