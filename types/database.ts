@@ -11,11 +11,13 @@ export interface Teacher {
   id: string;
   name: string;
   employeeId: string;
-  department: string; // Changed from departmentId to match DB schema
-  class: string; // Changed from classId to match DB schema
+  department: string;
+  class: string;
   subjects: string[];
   email: string;
-  phone?: string; // Made optional to match DB schema
+  phone?: string;
+  staffType: 'Teaching' | 'Non-Teaching';
+  role: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,9 +58,9 @@ export interface Department {
 }
 
 export interface Question {
-  $id?: string;
-  $createdAt?: string;
-  $updatedAt?: string;
+  id: string;
+  createdAt: string;
+  updatedAt: string;
   question: string;
   type: 'rating' | 'text' | 'multiple_choice';
   options?: string[];
@@ -69,12 +71,25 @@ export interface Question {
   sectionTitle: string; // e.g., "Encourages Student-Teacher Relationship"
   questionNumber: number; // 1-20
   maxScore: number; // Usually 5 for rating questions
+  targetRole?: string; // Role this question applies to
+}
+
+export interface AppraisalAssignment {
+  id: string;
+  appraiseeId: string;
+  appraiserId?: string;
+  appraiserType: 'student' | 'staff' | 'peer' | 'supervisor' | 'hod';
+  reviewerId?: string;
+  status: 'pending' | 'completed' | 'under_review' | 'finalized';
+  sessionId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Feedback {
-  $id?: string;
-  $createdAt?: string;
-  $updatedAt?: string;
+  id: string;
+  createdAt: string;
+  updatedAt: string;
   studentId: string;
   teacherId: string;
   subjectId: string;
@@ -83,12 +98,13 @@ export interface Feedback {
   submittedAt?: string;
   rating?: number;
   comment?: string;
+  appraisalAssignmentId?: string;
 }
 
 export interface Response {
-  $id?: string;
-  $createdAt?: string;
-  $updatedAt?: string;
+  id: string;
+  createdAt: string;
+  updatedAt: string;
   feedbackId: string;
   questionId: string;
   answer: string | number;

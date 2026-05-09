@@ -152,9 +152,9 @@ export default function Settings() {
       alert(`Error saving subject: ${error}. Please check your database configuration.`);
       // For demo purposes, add to local state if Appwrite fails
       if (editingId) {
-        setSubjects(subjects.map(s => s.$id === editingId ? { ...s, ...subjectForm } : s));
+        setSubjects(subjects.map(s => s.id === editingId ? { ...s, ...subjectForm } : s));
       } else {
-        const newSubject: SubjectType = { $id: Date.now().toString(), ...subjectForm };
+        const newSubject: SubjectType = { id: Date.now().toString(), ...subjectForm };
         setSubjects([...subjects, newSubject]);
       }
       resetSubjectForm();
@@ -172,7 +172,7 @@ export default function Settings() {
       console.log('🚀 Attempting to save class:', classForm);
       if (editingId) {
         await dbHelpers.update(COLLECTIONS.CLASSES, editingId, classForm);
-        setClasses(classes.map(c => c.$id === editingId ? { ...c, ...classForm } : c));
+        setClasses(classes.map(c => c.id === editingId ? { ...c, ...classForm } : c));
         console.log('✅ Class updated successfully');
       } else {
         const newClass = await dbHelpers.create(COLLECTIONS.CLASSES, classForm);
@@ -186,9 +186,9 @@ export default function Settings() {
       alert(`Error saving class: ${error}. Please check your database configuration.`);
       // For demo purposes, add to local state if Appwrite fails
       if (editingId) {
-        setClasses(classes.map(c => c.$id === editingId ? { ...c, ...classForm } : c));
+        setClasses(classes.map(c => c.id === editingId ? { ...c, ...classForm } : c));
       } else {
-        const newClass: ClassType = { $id: Date.now().toString(), ...classForm };
+        const newClass: ClassType = { id: Date.now().toString(), ...classForm };
         setClasses([...classes, newClass]);
       }
       resetClassForm();
@@ -199,7 +199,7 @@ export default function Settings() {
     try {
       if (editingId) {
         await dbHelpers.update(COLLECTIONS.DEPARTMENTS, editingId, departmentForm);
-        setDepartments(departments.map(d => d.$id === editingId ? { ...d, ...departmentForm } : d));
+        setDepartments(departments.map(d => d.id === editingId ? { ...d, ...departmentForm } : d));
       } else {
         const newDepartment = await dbHelpers.create(COLLECTIONS.DEPARTMENTS, departmentForm);
         setDepartments([...departments, newDepartment as unknown as DepartmentType]);
@@ -209,9 +209,9 @@ export default function Settings() {
       console.error('Error saving department:', error);
       // For demo purposes, add to local state if Appwrite fails
       if (editingId) {
-        setDepartments(departments.map(d => d.$id === editingId ? { ...d, ...departmentForm } : d));
+        setDepartments(departments.map(d => d.id === editingId ? { ...d, ...departmentForm } : d));
       } else {
-        const newDepartment: DepartmentType = { $id: Date.now().toString(), ...departmentForm };
+        const newDepartment: DepartmentType = { id: Date.now().toString(), ...departmentForm };
         setDepartments([...departments, newDepartment]);
       }
       resetDepartmentForm();
@@ -292,7 +292,7 @@ export default function Settings() {
   };
 
   const handleEdit = (type: 'subject' | 'class' | 'department', item: SubjectType | ClassType | DepartmentType) => {
-    setEditingId(item.$id!);
+    setEditingId(item.id!);
     if (type === 'subject') {
       const subject = item as SubjectType;
       setSubjectForm({ name: subject.name, department: subject.department });
@@ -314,23 +314,23 @@ export default function Settings() {
     try {
       if (type === 'subject') {
         await dbHelpers.delete(COLLECTIONS.SUBJECTS, id);
-        setSubjects(subjects.filter(s => s.$id !== id));
+        setSubjects(subjects.filter(s => s.id !== id));
       } else if (type === 'class') {
         await dbHelpers.delete(COLLECTIONS.CLASSES, id);
-        setClasses(classes.filter(c => c.$id !== id));
+        setClasses(classes.filter(c => c.id !== id));
       } else if (type === 'department') {
         await dbHelpers.delete(COLLECTIONS.DEPARTMENTS, id);
-        setDepartments(departments.filter(d => d.$id !== id));
+        setDepartments(departments.filter(d => d.id !== id));
       }
     } catch (error) {
       console.error('Error deleting item:', error);
       // For demo purposes, remove from local state if Appwrite fails
       if (type === 'subject') {
-        setSubjects(subjects.filter(s => s.$id !== id));
+        setSubjects(subjects.filter(s => s.id !== id));
       } else if (type === 'class') {
-        setClasses(classes.filter(c => c.$id !== id));
+        setClasses(classes.filter(c => c.id !== id));
       } else if (type === 'department') {
-        setDepartments(departments.filter(d => d.$id !== id));
+        setDepartments(departments.filter(d => d.id !== id));
       }
     }
   };
@@ -531,7 +531,7 @@ export default function Settings() {
                         </tr>
                       ) : (
                         subjects.map((subject) => (
-                          <tr key={subject.$id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <tr key={subject.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                               {subject.name}
                             </td>
@@ -546,7 +546,7 @@ export default function Settings() {
                                 Edit
                               </button>
                               <button
-                                onClick={() => handleDelete('subject', subject.$id!)}
+                                onClick={() => handleDelete('subject', subject.id!)}
                                 className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                               >
                                 Delete
@@ -611,7 +611,7 @@ export default function Settings() {
                         </tr>
                       ) : (
                         classes.map((cls) => (
-                          <tr key={cls.$id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <tr key={cls.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                               {cls.name}
                             </td>
@@ -629,7 +629,7 @@ export default function Settings() {
                                 Edit
                               </button>
                               <button
-                                onClick={() => handleDelete('class', cls.$id!)}
+                                onClick={() => handleDelete('class', cls.id!)}
                                 className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                               >
                                 Delete
@@ -838,7 +838,7 @@ export default function Settings() {
                   >
                     <option value="">Select Department</option>
                     {departments.map(dept => (
-                      <option key={dept.$id} value={dept.name}>{dept.name}</option>
+                      <option key={dept.id} value={dept.name}>{dept.name}</option>
                     ))}
                   </select>
                 </div>

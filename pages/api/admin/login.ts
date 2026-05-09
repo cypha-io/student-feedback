@@ -60,7 +60,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           success: true, 
           email: dbAdmin.email, 
           fullName: dbAdmin.fullName, 
-          role: dbAdmin.role 
+          role: dbAdmin.role,
+          staffId: dbAdmin.staffId
         })
       }
     }

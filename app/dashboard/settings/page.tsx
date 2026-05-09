@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { House, Subject, Class, Department } from '@/types/database';
 import { useNotification, showSuccess, showError } from '@/components/NotificationSystem';
@@ -9,8 +9,8 @@ import { useConfirmation } from '@/components/ConfirmationDialog';
 export default function Settings() {
   const { addNotification } = useNotification();
   const { confirm } = useConfirmation();
-  const notifySuccess = showSuccess(addNotification);
-  const notifyError = showError(addNotification);
+  const notifySuccess = useMemo(() => showSuccess(addNotification), [addNotification]);
+  const notifyError = useMemo(() => showError(addNotification), [addNotification]);
   
   const [activeTab, setActiveTab] = useState<'general' | 'roles' | 'houses' | 'subjects' | 'classes' | 'departments'>('general');
   

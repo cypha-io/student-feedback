@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, createContext, useContext, ReactNode } from 'react';
+import { useState, createContext, useContext, ReactNode, useCallback } from 'react';
 
 interface ConfirmationOptions {
   title: string;
@@ -33,13 +33,13 @@ export const ConfirmationProvider = ({ children }: ConfirmationProviderProps) =>
   const [options, setOptions] = useState<ConfirmationOptions | null>(null);
   const [resolvePromise, setResolvePromise] = useState<((value: boolean) => void) | null>(null);
 
-  const confirm = (options: ConfirmationOptions): Promise<boolean> => {
+  const confirm = useCallback((options: ConfirmationOptions): Promise<boolean> => {
     return new Promise((resolve) => {
       setOptions(options);
       setResolvePromise(() => resolve);
       setIsOpen(true);
     });
-  };
+  }, []);
 
   const handleConfirm = () => {
     if (resolvePromise) {

@@ -29,7 +29,7 @@ const PERFORMANCE_RATINGS = [
 ];
 
 interface DashboardStats {
-  totalTeachers: number;
+  totalPersonnel: number;
   totalEvaluations: number;
   totalResponses: number;
   averageScore: number;
@@ -37,7 +37,7 @@ interface DashboardStats {
   needsImprovement: number;
   sectionAverages: Record<string, number>;
   recentEvaluations: Array<{
-    teacherName: string;
+    staffName: string;
     department: string;
     score: number;
     rating: string;
@@ -47,7 +47,7 @@ interface DashboardStats {
 
 export default function EvaluationOverview() {
   const [stats, setStats] = useState<DashboardStats>({
-    totalTeachers: 0,
+    totalPersonnel: 0,
     totalEvaluations: 0,
     totalResponses: 0,
     averageScore: 0,
@@ -100,7 +100,7 @@ export default function EvaluationOverview() {
       const teacherPerformance = teachers.map(teacher => {
         const teacherFeedbacks = feedbacks.filter(f => f.teacherId === teacher.id);
         const teacherResponses = responses.filter(r => 
-          teacherFeedbacks.some(f => f.$id === r.feedbackId)
+          teacherFeedbacks.some(f => f.id === r.feedbackId)
         );
 
         if (teacherResponses.length === 0) return { teacher, score: 0, rating: 'No Data' };
@@ -125,18 +125,18 @@ export default function EvaluationOverview() {
 
       // Get recent evaluations
       const recentEvaluations = feedbacks
-        .sort((a, b) => new Date(b.$createdAt || '').getTime() - new Date(a.$createdAt || '').getTime())
+        .sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime())
         .slice(0, 5)
         .map(feedback => {
-          const teacher = teachers.find(t => t.id === feedback.teacherId);
-          const teacherPerf = teacherPerformance.find(tp => tp.teacher.id === feedback.teacherId);
+          const staffMember = teachers.find(t => t.id === feedback.teacherId);
+          const staffPerf = teacherPerformance.find(tp => tp.teacher.id === feedback.teacherId);
           
           return {
-            teacherName: teacher?.name || 'Unknown',
-            department: teacher?.department || 'Unknown',
-            score: teacherPerf?.score || 0,
-            rating: teacherPerf?.rating || 'No Data',
-            date: new Date(feedback.$createdAt || '').toLocaleDateString()
+            staffName: staffMember?.name || 'Unknown',
+            department: staffMember?.department || 'Unknown',
+            score: staffPerf?.score || 0,
+            rating: staffPerf?.rating || 'No Data',
+            date: new Date(feedback.createdAt || '').toLocaleDateString()
           };
         });
 
@@ -147,7 +147,7 @@ export default function EvaluationOverview() {
         : 0;
 
       setStats({
-        totalTeachers: teachers.length,
+        totalPersonnel: teachers.length,
         totalEvaluations: feedbacks.length,
         totalResponses: responses.length,
         averageScore,
@@ -211,7 +211,7 @@ export default function EvaluationOverview() {
                 { step: '01', title: 'Departments', desc: 'Define school units', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5' },
                 { step: '02', title: 'Subjects', desc: 'Map your curriculum', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
                 { step: '03', title: 'Classes', desc: 'Define year levels', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5' },
-                { step: '04', title: 'Teachers', desc: 'Assign subjects/classes', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+                { step: '04', title: 'Personnel', desc: 'Add staff and roles', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
                 { step: '05', title: 'Questions', desc: 'Build questionnaire', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
                 { step: '06', title: 'Students', desc: 'Import for access', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
               ].map((item, idx) => (
@@ -261,7 +261,7 @@ export default function EvaluationOverview() {
         {/* Core Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { label: 'Total Teachers', value: stats.totalTeachers, icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', color: 'blue' },
+            { label: 'Total Personnel', value: stats.totalPersonnel, icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', color: 'blue' },
             { label: 'Total Evaluations', value: stats.totalEvaluations, icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', color: 'indigo' },
             { label: 'Average Score', value: `${stats.averageScore.toFixed(1)}%`, icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: 'amber', sub: PERFORMANCE_RATINGS.find(r => stats.averageScore >= r.min && stats.averageScore <= r.max)?.label },
             { label: 'Total Responses', value: stats.totalResponses, icon: 'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z', color: 'purple' }
@@ -304,7 +304,7 @@ export default function EvaluationOverview() {
             <div className="p-8 space-y-6">
               {[
                 { label: 'Excellent', range: '85-100%', count: stats.excellentTeachers, color: 'emerald' },
-                { label: 'Above Average', range: '60-84%', count: stats.totalTeachers - stats.excellentTeachers - stats.needsImprovement, color: 'blue' },
+                { label: 'Above Average', range: '60-84%', count: stats.totalPersonnel - stats.excellentTeachers - stats.needsImprovement, color: 'blue' },
                 { label: 'Needs Improvement', range: '<60%', count: stats.needsImprovement, color: 'rose' }
               ].map((item, idx) => (
                 <div key={idx} className="group">
@@ -313,13 +313,13 @@ export default function EvaluationOverview() {
                       <span className={`text-sm font-bold text-${item.color}-600 block`}>{item.label}</span>
                       <span className="text-[10px] font-medium text-slate-400">{item.range}</span>
                     </div>
-                    <span className="text-sm font-black text-slate-900">{item.count} teachers</span>
-                  </div>
-                  <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                    <div 
-                      className={`h-full bg-${item.color}-500 rounded-full transition-all duration-1000 ease-out shadow-sm`}
-                      style={{ width: `${(item.count / (stats.totalTeachers || 1)) * 100}%` }}
-                    ></div>
+                      <span className="text-sm font-black text-slate-900">{item.count} personnel</span>
+                    </div>
+                    <div className="h-3 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                      <div 
+                        className={`h-full bg-${item.color}-500 rounded-full transition-all duration-1000 ease-out shadow-sm`}
+                        style={{ width: `${(item.count / (stats.totalPersonnel || 1)) * 100}%` }}
+                      ></div>
                   </div>
                 </div>
               ))}
@@ -377,7 +377,7 @@ export default function EvaluationOverview() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Teacher</th>
+                  <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Personnel</th>
                   <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Department</th>
                   <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Score</th>
                   <th className="py-4 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Rating</th>
@@ -390,9 +390,9 @@ export default function EvaluationOverview() {
                     <td className="py-4 px-8">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-600 font-bold text-xs">
-                          {evaluation.teacherName.charAt(0)}
+                          {evaluation.staffName.charAt(0)}
                         </div>
-                        <span className="text-sm font-bold text-slate-900">{evaluation.teacherName}</span>
+                        <span className="text-sm font-bold text-slate-900">{evaluation.staffName}</span>
                       </div>
                     </td>
                     <td className="py-4 px-8 text-sm font-medium text-slate-600">{evaluation.department}</td>

@@ -15,6 +15,7 @@ interface Feedback {
   status: string;
   submittedAt: string;
   createdAt: string;
+  appraisalAssignmentId?: string;
 }
 
 interface Response {
@@ -29,6 +30,7 @@ interface ProcessedFeedbackResponse {
   id: string;
   teacherName: string;
   studentId: string;
+  raterType: string;
   responses: Record<string, number>;
   overallScore: number;
   sectionScores: Record<string, number>;
@@ -43,10 +45,14 @@ export default function StudentResponsesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTeacher, setFilterTeacher] = useState('');
+  const [raterTypeFilter, setRaterTypeFilter] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'teacher'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedResponse, setSelectedResponse] = useState<ProcessedFeedbackResponse | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [editedResponses, setEditedResponses] = useState<Record<string, number>>({});
+  const [savingReview, setSavingReview] = useState(false);
 
 
 
@@ -89,6 +95,8 @@ export default function StudentResponsesPage() {
 
       // Fetch all responses
       const responsesResult = await dbHelpers.getAll(COLLECTIONS.RESPONSES);
+      const assignmentsResult = await dbHelpers.getAll(COLLECTIONS.APPRAISAL_ASSIGNMENTS);
+      const allAssignments = assignmentsResult.documents as any[];
       
       console.log('Responses fetched:', responsesResult.documents.length);
 
@@ -97,6 +105,13 @@ export default function StudentResponsesPage() {
       const processedResponses: ProcessedFeedbackResponse[] = [];
       
       for (const feedback of feedbacksResult.documents as unknown as Feedback[]) {
+        // Get the assignment to check rater type
+        const assignment = feedback.appraisalAssignmentId ? 
+          allAssignments.find(a => a.id === feedback.appraisalAssignmentId) : 
+          null;
+        
+        const raterType = assignment?.appraiserType || 'student';
+        
         // Get responses for this feedback
         const feedbackResponses = responsesResult.documents.filter(
           (response: unknown) => (response as Response).feedbackId === feedback.id
@@ -120,18 +135,6 @@ export default function StudentResponsesPage() {
           }
         }
         
-        // Calculate section averages
-        const sections = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-        const sectionsPerQuestionCount: Record<string, number> = {
-          'A': 3, 'B': 3, 'C': 3, 'D': 3, 'E': 2, 'F': 2, 'G': 2, 'H': 2
-        };
-        
-        for (const section of sections) {
-          if (sectionScores[section]) {
-            sectionScores[section] = sectionScores[section] / sectionsPerQuestionCount[section];
-          }
-        }
-        
         // Calculate overall score
         const allScores = Object.values(responseScores);
         const overallScore = allScores.length > 0 
@@ -141,7 +144,8 @@ export default function StudentResponsesPage() {
         processedResponses.push({
           id: feedback.id,
           teacherName: feedback.teacherName,
-          studentId: feedback.studentId,
+          studentId: feedback.studentId || (assignment ? 'Staff Appraiser' : 'Anonymous Student'),
+          raterType,
           responses: responseScores,
           overallScore,
           sectionScores,
@@ -163,6 +167,11 @@ export default function StudentResponsesPage() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const teacherParam = params.get('teacher');
+    if (teacherParam) {
+      setFilterTeacher(teacherParam);
+    }
     fetchResponses();
   }, [fetchResponses]);
 
@@ -172,7 +181,8 @@ export default function StudentResponsesPage() {
         response.teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         response.studentId.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTeacher = !filterTeacher || response.teacherName === filterTeacher;
-      return matchesSearch && matchesTeacher;
+      const matchesRaterType = !raterTypeFilter || response.raterType === raterTypeFilter;
+      return matchesSearch && matchesTeacher && matchesRaterType;
     })
     .sort((a, b) => {
       let comparison = 0;
@@ -220,6 +230,57 @@ export default function StudentResponsesPage() {
   const closeDetailsModal = () => {
     setShowDetailsModal(false);
     setSelectedResponse(null);
+    setIsReviewMode(false);
+    setEditedResponses({});
+  };
+
+  const handleToggleReviewMode = () => {
+    if (!isReviewMode && selectedResponse) {
+      setEditedResponses(selectedResponse.responses);
+    }
+    setIsReviewMode(!isReviewMode);
+  };
+
+  const handleRatingChange = (questionId: string, rating: number) => {
+    setEditedResponses(prev => ({
+      ...prev,
+      [questionId]: rating
+    }));
+  };
+
+  const handleSaveReview = async () => {
+    if (!selectedResponse) return;
+    
+    try {
+      setSavingReview(true);
+      
+      // Get the actual response documents for this feedback to get their IDs
+      const responsesResult = await dbHelpers.getAll(COLLECTIONS.RESPONSES);
+      const feedbackResponses = responsesResult.documents.filter(
+        (r: any) => r.feedbackId === selectedResponse.id
+      );
+
+      // Update each response
+      for (const [questionId, rating] of Object.entries(editedResponses)) {
+        const responseDoc = feedbackResponses.find((r: any) => r.questionId === questionId);
+        if (responseDoc) {
+          await fetch('/api/responses', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: responseDoc.id, answer: rating })
+          });
+        }
+      }
+
+      alert('Appraisal reviewed and updated successfully!');
+      setIsReviewMode(false);
+      fetchResponses();
+    } catch (error) {
+      console.error('Error saving review:', error);
+      alert('Failed to save review changes.');
+    } finally {
+      setSavingReview(false);
+    }
   };
 
   if (loading) {
@@ -229,7 +290,7 @@ export default function StudentResponsesPage() {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading student responses...</p>
+              <p className="text-gray-600">Loading appraisal responses...</p>
             </div>
           </div>
         </div>
@@ -271,10 +332,10 @@ export default function StudentResponsesPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Evaluation Intelligence
+              Appraisal Intelligence
             </h2>
             <p className="text-slate-500 mt-1 text-sm font-medium">
-              Analyze individual student submissions and performance metrics
+              Analyze multi-rater submissions and performance metrics across all roles
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -340,6 +401,23 @@ export default function StudentResponsesPage() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Rater Group</label>
+              <select
+                value={raterTypeFilter}
+                onChange={(e) => setRaterTypeFilter(e.target.value)}
+                className="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">All Raters</option>
+                <option value="student">Students</option>
+                <option value="hod">HODs</option>
+                <option value="supervisor">Supervisors</option>
+                <option value="peer">Peers</option>
+                <option value="staff">Other Staff</option>
+                <option value="assistant_head">Asst. Heads</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Order By</label>
               <select
                 value={sortBy}
@@ -372,11 +450,11 @@ export default function StudentResponsesPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Personnel</th>
-                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Submitter</th>
-                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Efficiency Score</th>
+                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Appraisee</th>
+                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Appraiser</th>
+                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Rater Group</th>
+                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Score</th>
                   <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Rating</th>
-                  <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Timestamp</th>
                   <th className="py-5 px-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>
               </thead>
@@ -404,20 +482,21 @@ export default function StudentResponsesPage() {
                           <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{response.teacherName}</div>
                         </div>
                       </td>
+                      <td className="py-6 px-8 text-xs font-bold text-slate-600">
+                        {response.studentId}
+                      </td>
                       <td className="py-6 px-8">
-                        <div className="text-[10px] font-black text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 inline-block uppercase tracking-widest">
-                          {response.studentId || 'Anonymous'}
+                        <div className={`text-[10px] font-black px-2.5 py-1 rounded-lg border inline-block uppercase tracking-widest ${
+                          response.raterType === 'student' ? 'text-blue-600 bg-blue-50 border-blue-100' : 
+                          response.raterType === 'hod' ? 'text-purple-600 bg-purple-50 border-purple-100' :
+                          'text-indigo-600 bg-indigo-50 border-indigo-100'
+                        }`}>
+                          {response.raterType}
                         </div>
                       </td>
                       <td className="py-6 px-8 text-center">
                         <div className="text-sm font-black text-slate-900">
                           {response.overallScore.toFixed(2)}
-                        </div>
-                        <div className="w-24 h-1.5 bg-slate-100 rounded-full mx-auto mt-2 overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-600 rounded-full" 
-                            style={{ width: `${(response.overallScore / 5) * 100}%` }}
-                          ></div>
                         </div>
                       </td>
                       <td className="py-6 px-8">
@@ -429,14 +508,6 @@ export default function StudentResponsesPage() {
                         }`}>
                           {response.performanceGrade}
                         </span>
-                      </td>
-                      <td className="py-6 px-8">
-                        <div className="text-xs font-bold text-slate-500">
-                          {new Date(response.submittedAt || response.createdAt).toLocaleDateString()}
-                        </div>
-                        <div className="text-[10px] text-slate-400">
-                          {new Date(response.submittedAt || response.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
                       </td>
                       <td className="py-6 px-8 text-right">
                         <button 
@@ -470,14 +541,24 @@ export default function StudentResponsesPage() {
                   </div>
                   <div>
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight">Personnel Intelligence Report</h3>
-                    <p className="text-xs font-black text-blue-600 uppercase tracking-widest mt-1">Generated for Submitter: {selectedResponse.studentId || 'ANONYMOUS'}</p>
+                    <p className="text-xs font-black text-blue-600 uppercase tracking-widest mt-1">Appraiser Group: {selectedResponse.raterType}</p>
                   </div>
                 </div>
-                <button onClick={closeDetailsModal} className="w-12 h-12 bg-slate-100 text-slate-500 hover:bg-slate-900 hover:text-white rounded-2xl transition-all flex items-center justify-center">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={handleToggleReviewMode}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      isReviewMode ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {isReviewMode ? 'Exit Review' : 'Edit Ratings'}
+                  </button>
+                  <button onClick={closeDetailsModal} className="w-12 h-12 bg-slate-100 text-slate-500 hover:bg-slate-900 hover:text-white rounded-2xl transition-all flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Modal Content */}
@@ -539,14 +620,24 @@ export default function StudentResponsesPage() {
                         <div className="flex items-center gap-6 shrink-0">
                           <div className="flex gap-1.5">
                             {[1, 2, 3, 4, 5].map((star) => (
-                              <div 
-                                key={star} 
-                                className={`w-3 h-3 rounded-full ${star <= rating ? 'bg-blue-600' : 'bg-slate-100'}`}
-                              ></div>
+                              <button
+                                key={star}
+                                disabled={!isReviewMode}
+                                onClick={() => handleRatingChange(question, star)}
+                                className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                                  star <= (isReviewMode ? editedResponses[question] : rating) 
+                                    ? 'bg-blue-600 text-white' 
+                                    : 'bg-slate-100 text-slate-300'
+                                } ${isReviewMode ? 'hover:scale-110' : 'cursor-default'}`}
+                              >
+                                {star}
+                              </button>
                             ))}
                           </div>
                           <div className="w-12 text-right">
-                            <span className="text-xl font-black text-slate-900">{rating}</span>
+                            <span className="text-xl font-black text-slate-900">
+                              {isReviewMode ? editedResponses[question] : rating}
+                            </span>
                             <span className="text-[10px] font-black text-slate-300 ml-1">/5</span>
                           </div>
                         </div>
@@ -558,21 +649,33 @@ export default function StudentResponsesPage() {
 
               {/* Modal Footer */}
               <div className="px-10 py-8 bg-white border-t border-slate-100 flex justify-end gap-4">
-                <button
-                  onClick={() => window.print()}
-                  className="px-6 py-3 border border-slate-200 text-slate-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
-                  Export PDF
-                </button>
-                <button
-                  onClick={closeDetailsModal}
-                  className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-slate-200"
-                >
-                  Dismiss Report
-                </button>
+                {isReviewMode ? (
+                  <button
+                    onClick={handleSaveReview}
+                    disabled={savingReview}
+                    className="px-10 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-blue-100 disabled:opacity-50"
+                  >
+                    {savingReview ? 'Saving Changes...' : 'Save Review Changes'}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => window.print()}
+                      className="px-6 py-3 border border-slate-200 text-slate-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                      </svg>
+                      Export PDF
+                    </button>
+                    <button
+                      onClick={closeDetailsModal}
+                      className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-slate-200"
+                    >
+                      Dismiss Report
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

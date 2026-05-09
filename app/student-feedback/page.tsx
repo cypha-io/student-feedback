@@ -46,13 +46,14 @@ const RatingIcon = ({ value }: { value: number }) => {
   );
 };
 
-export default function StudentFeedback() {
+export default function FeedbackPortal() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [appraiserMode, setAppraiserMode] = useState<'student' | 'staff'>('student');
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [siteTitle, setSiteTitle] = useState('Student Feedback Portal');
+  const [siteTitle, setSiteTitle] = useState('Feedback Portal');
 
-  // Data fetching states
+  const [questions, setQuestions] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -62,6 +63,12 @@ export default function StudentFeedback() {
     name: '',
     studentId: '',
     class: ''
+  });
+
+  const [staffInfo, setStaffInfo] = useState({
+    name: '',
+    staffId: '',
+    appraiserType: 'peer'
   });
 
   const [selectedTeacher, setSelectedTeacher] = useState('');
@@ -75,7 +82,34 @@ export default function StudentFeedback() {
       return teacher?.subjects?.includes(subject.name);
     }) : [];
 
-  const sectionKeys = Object.keys(FEEDBACK_SECTIONS);
+  // Dynamic Sections based on questions in DB
+  const getSectionsFromQuestions = () => {
+    const selectedTeacherData = teachers.find(t => t.id === selectedTeacher);
+    if (!selectedTeacherData) return {};
+
+    const filteredQuestions = questions.filter(q => 
+      q.targetRole === selectedTeacherData.staffType || q.targetRole === 'General'
+    );
+
+    const sections: Record<string, any> = {};
+    filteredQuestions.forEach(q => {
+      const sectionKey = q.section || 'General';
+      if (!sections[sectionKey]) {
+        sections[sectionKey] = {
+          title: q.sectionTitle || 'General Performance',
+          icon: '📊',
+          description: 'Evaluating professional conduct and performance',
+          color: 'from-blue-500 to-indigo-500',
+          questions: []
+        };
+      }
+      sections[sectionKey].questions.push({ id: q.id, text: q.question });
+    });
+    return sections;
+  };
+
+  const FEEDBACK_SECTIONS_DYNAMIC = getSectionsFromQuestions();
+  const sectionKeys = Object.keys(FEEDBACK_SECTIONS_DYNAMIC);
   const totalSections = sectionKeys.length;
 
   useEffect(() => {
@@ -96,33 +130,41 @@ export default function StudentFeedback() {
 
   const fetchData = async () => {
     try {
-      const [teachersRes, subjectsRes, classesRes] = await Promise.all([
+      const [teachersRes, subjectsRes, classesRes, questionsRes] = await Promise.all([
         fetch('/api/teachers'),
         fetch('/api/subjects'),
-        fetch('/api/classes')
+        fetch('/api/classes'),
+        fetch('/api/questions')
       ]);
 
-      // Ensure we get valid arrays or default to empty arrays
       const teachersData = teachersRes.ok ? await teachersRes.json() : [];
       const subjectsData = subjectsRes.ok ? await subjectsRes.json() : [];
       const classesData = classesRes.ok ? await classesRes.json() : [];
+      const questionsData = questionsRes.ok ? await questionsRes.json() : [];
 
       setTeachers(Array.isArray(teachersData) ? teachersData : []);
       setSubjects(Array.isArray(subjectsData) ? subjectsData : []);
       setClasses(Array.isArray(classesData) ? classesData : []);
+      setQuestions(Array.isArray(questionsData) ? questionsData : []);
     } catch (error) {
       console.error('Error fetching data:', error);
-      // Set empty arrays as fallback
       setTeachers([]);
       setSubjects([]);
       setClasses([]);
+      setQuestions([]);
     }
   };
 
-  const handleStudentInfoSubmit = (e: React.FormEvent) => {
+  const handleAppraiserInfoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (studentInfo.name && studentInfo.studentId && studentInfo.class) {
-      setCurrentStep(2);
+    if (appraiserMode === 'student') {
+      if (studentInfo.name && studentInfo.studentId && studentInfo.class) {
+        setCurrentStep(2);
+      }
+    } else {
+      if (staffInfo.name && staffInfo.staffId && staffInfo.appraiserType) {
+        setCurrentStep(2);
+      }
     }
   };
 
@@ -139,27 +181,24 @@ export default function StudentFeedback() {
     }
   };
 
-  const handleRatingSelect = (questionIndex: number, rating: number) => {
-    const sectionKey = sectionKeys[currentSectionIndex];
-    const questionKey = `${sectionKey}-${questionIndex}`;
+  const handleRatingSelect = (questionId: string, rating: number) => {
     setResponses(prev => ({
       ...prev,
-      [questionKey]: rating
+      [questionId]: rating
     }));
   };
 
   const getCurrentSection = () => {
     const sectionKey = sectionKeys[currentSectionIndex];
-    return FEEDBACK_SECTIONS[sectionKey as keyof typeof FEEDBACK_SECTIONS];
+    return FEEDBACK_SECTIONS_DYNAMIC[sectionKey];
   };
 
   const isCurrentSectionComplete = () => {
     const currentSection = getCurrentSection();
-    const sectionKey = sectionKeys[currentSectionIndex];
+    if (!currentSection) return false;
 
-    return currentSection.questions.every((_, questionIndex) => {
-      const questionKey = `${sectionKey}-${questionIndex}`;
-      return responses[questionKey] !== undefined;
+    return currentSection.questions.every((q: any) => {
+      return responses[q.id] !== undefined;
     });
   };
 
@@ -185,17 +224,18 @@ export default function StudentFeedback() {
       const selectedTeacherData = teachers.find(t => t.id === selectedTeacher);
 
       const feedbackData = {
-        studentId: studentInfo.studentId,
+        studentId: appraiserMode === 'student' ? studentInfo.studentId : staffInfo.staffId,
+        appraiserType: appraiserMode === 'student' ? 'student' : staffInfo.appraiserType,
         teacherId: selectedTeacher,
         teacherName: selectedTeacherData?.name || '',
         subjectId: selectedSubject,
-        classId: studentInfo.class,
+        classId: appraiserMode === 'student' ? studentInfo.class : 'N/A',
         status: 'completed',
         submittedAt: new Date().toISOString()
       };
 
-      const responsesData = Object.entries(responses).map(([questionKey, answer]) => ({
-        questionId: questionKey,
+      const responsesData = Object.entries(responses).map(([questionId, answer]) => ({
+        questionId,
         answer: answer.toString(),
         type: 'rating'
       }));
@@ -245,17 +285,7 @@ export default function StudentFeedback() {
       <div className="relative z-10 container mx-auto px-4 py-8 min-h-screen">
         {/* Compact Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
-              {siteTitle}
-            </h1>
-          </div>
-          <p className="text-white/90 text-lg mb-2">Share feedback to improve education quality</p>
+          {/* Header text and icons removed as per user request */}
         </div>
 
         {/* Progress Bar */}
@@ -266,8 +296,8 @@ export default function StudentFeedback() {
             />
           </div>
           <div className="text-center text-white/90 text-sm">
-            {currentStep === 1 && 'Student Information'}
-            {currentStep === 2 && 'Teacher & Subject Selection'}
+            {currentStep === 1 && (appraiserMode === 'student' ? 'Student Information' : 'Staff Information')}
+            {currentStep === 2 && 'Appraisee Selection'}
             {currentStep === 3 && `Section ${currentSectionIndex + 1} of ${totalSections}: ${getCurrentSection().title}`}
             {currentStep === 4 && 'Feedback Complete'}
           </div>
@@ -277,75 +307,144 @@ export default function StudentFeedback() {
         <div className="max-w-3xl mx-auto">
           <div className={`${styles.feedbackCard} rounded-2xl shadow-2xl overflow-hidden`}>
             
-            {/* Step 1: Student Information */}
+            {/* Step 1: Appraiser Information */}
             {currentStep === 1 && (
               <div className="p-8">
                 <div className="text-center mb-8">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Student Information</h2>
-                  <p className="text-gray-600">Let&apos;s get started with your details</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Identify Yourself</h2>
+                  <p className="text-gray-600">Select your role to begin evaluation</p>
+                </div>
+
+                <div className="flex items-center gap-4 mb-10 bg-gray-50 p-2 rounded-2xl max-w-sm mx-auto border border-gray-100 shadow-inner">
+                  <button
+                    onClick={() => setAppraiserMode('student')}
+                    className={`flex-1 py-3 px-6 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                      appraiserMode === 'student' ? 'bg-white text-blue-600 shadow-md' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    Student
+                  </button>
+                  <button
+                    onClick={() => setAppraiserMode('staff')}
+                    className={`flex-1 py-3 px-6 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                      appraiserMode === 'staff' ? 'bg-white text-blue-600 shadow-md' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    Staff Member
+                  </button>
                 </div>
                 
-                <form onSubmit={handleStudentInfoSubmit} className="space-y-6 max-w-md mx-auto">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      value={studentInfo.name}
-                      onChange={(e) => setStudentInfo({...studentInfo, name: e.target.value})}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      placeholder="Enter your full name"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-2">
-                      Student ID
-                    </label>
-                    <input
-                      type="text"
-                      id="studentId"
-                      value={studentInfo.studentId}
-                      onChange={(e) => setStudentInfo({...studentInfo, studentId: e.target.value})}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      placeholder="Enter your student ID"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="class" className="block text-sm font-medium text-gray-700 mb-2">
-                      Class/Grade
-                    </label>
-                    <select
-                      id="class"
-                      value={studentInfo.class}
-                      onChange={(e) => setStudentInfo({...studentInfo, class: e.target.value})}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      required
-                    >
-                      <option value="">Select your class...</option>
-                      {classes && classes.map((cls) => (
-                        <option key={cls.id} value={cls.id}>
-                          {cls.name} - Year {cls.year}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <form onSubmit={handleAppraiserInfoSubmit} className="space-y-6 max-w-md mx-auto">
+                  {appraiserMode === 'student' ? (
+                    <>
+                      <div>
+                        <label htmlFor="name" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                          Full Name
+                        </label>
+                        <input
+                          type="text"
+                          id="name"
+                          value={studentInfo.name}
+                          onChange={(e) => setStudentInfo({...studentInfo, name: e.target.value})}
+                          className="w-full px-5 py-4 border-2 border-gray-100 bg-gray-50/50 rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm font-bold"
+                          placeholder="Enter your full name"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="studentId" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                          Student ID
+                        </label>
+                        <input
+                          type="text"
+                          id="studentId"
+                          value={studentInfo.studentId}
+                          onChange={(e) => setStudentInfo({...studentInfo, studentId: e.target.value})}
+                          className="w-full px-5 py-4 border-2 border-gray-100 bg-gray-50/50 rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm font-bold"
+                          placeholder="Enter your student ID"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="class" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                          Class/Grade
+                        </label>
+                        <select
+                          id="class"
+                          value={studentInfo.class}
+                          onChange={(e) => setStudentInfo({...studentInfo, class: e.target.value})}
+                          className="w-full px-5 py-4 border-2 border-gray-100 bg-gray-50/50 rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm font-bold appearance-none cursor-pointer"
+                          required
+                        >
+                          <option value="">Select your class...</option>
+                          {classes && classes.map((cls) => (
+                            <option key={cls.id} value={cls.id}>
+                              {cls.name} - Year {cls.year}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label htmlFor="staff-name" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                          Staff Name
+                        </label>
+                        <input
+                          type="text"
+                          id="staff-name"
+                          value={staffInfo.name}
+                          onChange={(e) => setStaffInfo({...staffInfo, name: e.target.value})}
+                          className="w-full px-5 py-4 border-2 border-gray-100 bg-gray-50/50 rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm font-bold"
+                          placeholder="Enter your name"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="staffId" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                          Staff ID
+                        </label>
+                        <input
+                          type="text"
+                          id="staffId"
+                          value={staffInfo.staffId}
+                          onChange={(e) => setStaffInfo({...staffInfo, staffId: e.target.value})}
+                          className="w-full px-5 py-4 border-2 border-gray-100 bg-gray-50/50 rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm font-bold"
+                          placeholder="Enter your staff ID"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="appraiserType" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                          Appraiser Relationship
+                        </label>
+                        <select
+                          id="appraiserType"
+                          value={staffInfo.appraiserType}
+                          onChange={(e) => setStaffInfo({...staffInfo, appraiserType: e.target.value})}
+                          className="w-full px-5 py-4 border-2 border-gray-100 bg-gray-50/50 rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm font-bold appearance-none cursor-pointer"
+                          required
+                        >
+                          <option value="peer">Peer (Colleague)</option>
+                          <option value="hod">HOD (Head of Dept)</option>
+                          <option value="supervisor">Direct Supervisor</option>
+                          <option value="assistant_head">Asst. Headmaster</option>
+                          <option value="other">Other Staff Member</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
                   
                   <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300"
+                    className="w-full bg-slate-900 hover:bg-blue-600 text-white font-black text-[11px] uppercase tracking-[0.2em] py-5 px-6 rounded-2xl shadow-xl shadow-slate-200 hover:shadow-blue-100 transition-all duration-300"
                   >
-                    Continue →
+                    Start Evaluation Process
                   </button>
                 </form>
               </div>
@@ -355,13 +454,8 @@ export default function StudentFeedback() {
             {currentStep === 2 && (
               <div className="p-8">
                 <div className="text-center mb-8">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Teacher & Subject</h2>
-                  <p className="text-gray-600">Choose who you want to evaluate</p>
+                  <h2 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">Select Personnel</h2>
+                  <p className="text-gray-600">Choose who you want to evaluate today</p>
                 </div>
                 
                 <form onSubmit={handleTeacherSelection} className="space-y-6 max-w-md mx-auto">
@@ -376,10 +470,10 @@ export default function StudentFeedback() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                       required
                     >
-                      <option value="">Choose a teacher...</option>
+                      <option value="">Choose personnel...</option>
                       {teachers && teachers.map((teacher) => (
                         <option key={teacher.id} value={teacher.id}>
-                          {teacher.name} - {teacher.department}
+                          {teacher.name} ({teacher.role}) - {teacher.department}
                         </option>
                       ))}
                     </select>
@@ -403,7 +497,7 @@ export default function StudentFeedback() {
                       disabled={!selectedTeacher}
                     >
                       <option value="">
-                        {selectedTeacher ? 'Choose a subject...' : 'Select a teacher first'}
+                        {selectedTeacher ? 'Choose a subject...' : 'Select personnel first'}
                       </option>
                       {filteredSubjects.map((subject) => (
                         <option key={subject.id} value={subject.id}>
@@ -436,9 +530,6 @@ export default function StudentFeedback() {
             {currentStep === 3 && (
               <div className="p-8">
                 <div className="text-center mb-8">
-                  <div className={`w-16 h-16 mx-auto mb-4 bg-gradient-to-r ${getCurrentSection().color} rounded-xl flex items-center justify-center text-3xl`}>
-                    {getCurrentSection().icon}
-                  </div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">{getCurrentSection().title}</h2>
                   <p className="text-gray-600 mb-4">{getCurrentSection().description}</p>
                   <div className="text-sm text-blue-600 font-medium">
@@ -447,18 +538,17 @@ export default function StudentFeedback() {
                 </div>
 
                 <div className="max-w-2xl mx-auto space-y-6">
-                  {getCurrentSection().questions.map((question, questionIndex) => {
-                    const questionKey = `${sectionKeys[currentSectionIndex]}-${questionIndex}`;
-                    const currentRating = responses[questionKey] || 0;
+                  {getCurrentSection().questions.map((question: any, questionIndex: number) => {
+                    const currentRating = responses[question.id] || 0;
                     
                     return (
-                      <div key={questionIndex} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                      <div key={question.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
                         <div className="mb-6">
                           <div className="flex items-start space-x-3 mb-4">
                             <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
                               {questionIndex + 1}
                             </div>
-                            <p className="text-gray-900 font-medium leading-relaxed">{question}</p>
+                            <p className="text-gray-900 font-medium leading-relaxed">{question.text}</p>
                           </div>
                         </div>
 
@@ -467,7 +557,7 @@ export default function StudentFeedback() {
                             <button
                               key={option.value}
                               type="button"
-                              onClick={() => handleRatingSelect(questionIndex, option.value)}
+                              onClick={() => handleRatingSelect(question.id, option.value)}
                               className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all duration-300 transform hover:scale-105 ${
                                 currentRating === option.value
                                   ? `${option.color} text-white border-transparent shadow-lg scale-105`
@@ -543,13 +633,14 @@ export default function StudentFeedback() {
                       setCurrentStep(1);
                       setCurrentSectionIndex(0);
                       setStudentInfo({ name: '', studentId: '', class: '' });
+                      setStaffInfo({ name: '', staffId: '', appraiserType: 'peer' });
                       setSelectedTeacher('');
                       setSelectedSubject('');
                       setResponses({});
                     }}
-                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300"
+                    className="w-full bg-slate-900 hover:bg-blue-600 text-white font-black text-[11px] uppercase tracking-widest py-5 px-6 rounded-2xl transition-all duration-300"
                   >
-                    Evaluate Another Teacher
+                    Evaluate Another Personnel
                   </button>
                   
                   <button

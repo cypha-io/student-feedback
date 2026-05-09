@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, employeeId, department, class: teacherClass, subjects, email, phone } = body;
+    const { name, employeeId, department, class: teacherClass, subjects, email, phone, staffType, role } = body;
 
     // Validate required fields
     if (!name || !employeeId || !department || !teacherClass || !email) {
@@ -33,6 +33,8 @@ export async function POST(request: NextRequest) {
       subjects: subjects || [],
       email,
       phone: phone || null,
+      staffType: staffType || 'Teaching',
+      role: role || 'Teacher',
     }).returning();
 
     return NextResponse.json(newTeacher[0], { status: 201 });
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, employeeId, department, class: teacherClass, subjects, email, phone } = body;
+    const { id, name, employeeId, department, class: teacherClass, subjects, email, phone, staffType, role } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Teacher ID is required' }, { status: 400 });
@@ -70,6 +72,8 @@ export async function PUT(request: NextRequest) {
         subjects: subjects || [],
         email,
         phone: phone || null,
+        staffType: staffType || 'Teaching',
+        role: role || 'Teacher',
         updatedAt: new Date(),
       })
       .where(eq(teachers.id, id))

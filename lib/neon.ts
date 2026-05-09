@@ -44,6 +44,18 @@ export const dbHelpers = {
     }
   },
 
+  async getById(collectionName: string, id: string) {
+    try {
+      const table = this.getTableByCollection(collectionName);
+      // @ts-ignore - Dynamic table column access
+      const result = await db.select().from(table).where(eq(table.id, id));
+      return result[0];
+    } catch (error) {
+      console.error(`Error fetching document from ${collectionName} by ID:`, error);
+      throw error;
+    }
+  },
+
   getTableByCollection(collectionName: string) {
     switch (collectionName.toLowerCase()) {
       case 'teachers':
@@ -66,6 +78,8 @@ export const dbHelpers = {
         return TABLES.RESPONSES;
       case 'admins':
         return TABLES.ADMINS;
+      case 'appraisal_assignments':
+        return TABLES.APPRAISAL_ASSIGNMENTS;
       default:
         throw new Error(`Unknown collection: ${collectionName}`);
     }
@@ -347,4 +361,5 @@ export const COLLECTIONS = {
   FEEDBACKS: 'feedbacks',
   RESPONSES: 'responses',
   ADMINS: 'admins',
+  APPRAISAL_ASSIGNMENTS: 'appraisal_assignments',
 };

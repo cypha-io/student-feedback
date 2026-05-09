@@ -22,12 +22,23 @@ interface NotificationItem {
 type RolePermissions = Record<string, string[]>;
 
 const defaultRolePermissions: RolePermissions = {
-  superadmin: ['viewOverview', 'manageTeachers', 'manageQuestions', 'viewReports', 'viewResponses', 'manageSettings', 'manageUsers'],
-  manager: ['viewOverview', 'manageTeachers', 'manageQuestions', 'viewReports', 'viewResponses'],
-  viewer: ['viewOverview', 'viewReports'],
+  superadmin: ['viewOverview', 'manageTeachers', 'manageQuestions', 'viewReports', 'viewResponses', 'manageSettings', 'manageUsers', 'manageAppraisals', 'viewConsolidatedReports', 'viewMyAppraisals'],
+  manager: ['viewOverview', 'manageTeachers', 'manageQuestions', 'viewReports', 'viewResponses', 'manageAppraisals', 'viewConsolidatedReports', 'viewMyAppraisals'],
+  viewer: ['viewOverview', 'viewReports', 'viewConsolidatedReports', 'viewMyAppraisals'],
+  staff: ['viewOverview', 'viewMyAppraisals'],
 };
 
 const navigation = [
+  { 
+    name: 'My Evaluations', 
+    href: '/dashboard/my-appraisals', 
+    permission: 'viewMyAppraisals',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    )
+  },
   { 
     name: 'Evaluation Overview', 
     href: '/dashboard', 
@@ -39,7 +50,7 @@ const navigation = [
     )
   },
   { 
-    name: 'Teacher Management', 
+    name: 'Personnel Management', 
     href: '/dashboard/teachers', 
     permission: 'manageTeachers',
     icon: (
@@ -69,12 +80,33 @@ const navigation = [
     )
   },
   { 
-    name: 'Student Responses', 
+    name: 'Appraisal Responses', 
     href: '/dashboard/responses', 
     permission: 'viewResponses',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+      </svg>
+    )
+  },
+  { 
+    name: 'Appraisal Matrix', 
+    href: '/dashboard/appraisals', 
+    permission: 'manageAppraisals',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    )
+  },
+  { 
+    name: 'Consolidated Intel', 
+    href: '/dashboard/consolidated-reports', 
+    permission: 'viewConsolidatedReports',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
       </svg>
     )
   },

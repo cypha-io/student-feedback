@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { dbHelpers, COLLECTIONS } from '@/lib/neon';
+// Dynamic imports used inside handlers to prevent SSR errors
 
 interface Question {
   id?: string;
@@ -17,6 +18,7 @@ interface Question {
   sectionTitle: string; // e.g., "Encourages Student-Teacher Relationship"
   questionNumber: number; // 1-20
   maxScore: number; // Usually 5 for rating questions
+  targetRole?: string; // Teaching, Non-Teaching, General
 }
 
 // Predefined feedback structure for auto-population
@@ -89,6 +91,7 @@ export default function QuestionsForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [activeTab, setActiveTab] = useState('Teaching');
   const [previewResponses, setPreviewResponses] = useState<Record<string, number>>({});
   const [formData, setFormData] = useState<Omit<Question, 'id'>>({
     question: '',
@@ -101,7 +104,11 @@ export default function QuestionsForm() {
     sectionTitle: '',
     questionNumber: 1,
     maxScore: 5,
+    targetRole: 'Teaching',
   });
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [importPreviewQuestions, setImportPreviewQuestions] = useState<any[]>([]);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isPopulating, setIsPopulating] = useState(false);
 
   // Load questions from database on component mount
@@ -213,6 +220,7 @@ export default function QuestionsForm() {
       sectionTitle: '',
       questionNumber: 1,
       maxScore: 5,
+      targetRole: 'Teaching',
     });
     setEditingQuestion(null);
     setIsModalOpen(false);
@@ -230,6 +238,7 @@ export default function QuestionsForm() {
       sectionTitle: question.sectionTitle,
       questionNumber: question.questionNumber,
       maxScore: question.maxScore,
+      targetRole: question.targetRole || 'Teaching',
     });
     setIsModalOpen(true);
   };
@@ -241,12 +250,54 @@ export default function QuestionsForm() {
       console.log('Deleting question with ID:', id);
       await dbHelpers.delete(COLLECTIONS.QUESTIONS, id);
       setQuestions(questions.filter(question => question.id !== id));
+      setSelectedQuestions(prev => prev.filter(qid => qid !== id));
       alert('Question deleted successfully!');
     } catch (error) {
       console.error('Error deleting question:', error);
       // Fallback to local state
       setQuestions(questions.filter(question => question.id !== id));
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedQuestions.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedQuestions.length} questions?`)) return;
+
+    try {
+      setLoading(true);
+      console.log('Bulk deleting questions:', selectedQuestions);
+      
+      // Delete from DB
+      await Promise.all(selectedQuestions.map(id => dbHelpers.delete(COLLECTIONS.QUESTIONS, id)));
+      
+      // Update state
+      setQuestions(questions.filter(q => !selectedQuestions.includes(q.id || '')));
+      setSelectedQuestions([]);
+      alert('Questions deleted successfully!');
+    } catch (error) {
+      console.error('Error during bulk delete:', error);
+      alert('Failed to delete some questions. Please refresh and try again.');
+      fetchQuestions();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    const currentQuestions = questions.filter(q => q.targetRole === activeTab || (!q.targetRole && activeTab === 'Teaching'));
+    const allIds = currentQuestions.map(q => q.id).filter(id => !!id) as string[];
+    
+    if (selectedQuestions.length === allIds.length) {
+      setSelectedQuestions([]);
+    } else {
+      setSelectedQuestions(allIds);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedQuestions(prev => 
+      prev.includes(id) ? prev.filter(qid => qid !== id) : [...prev, id]
+    );
   };
 
   const handleOptionChange = (index: number, value: string) => {
@@ -311,8 +362,9 @@ export default function QuestionsForm() {
     
     setIsPopulating(true);
     try {
-      // Clear existing questions
-      for (const question of questions) {
+      // Clear existing questions for the ACTIVE role only
+      const questionsToDelete = questions.filter(q => q.targetRole === activeTab || (!q.targetRole && activeTab === 'Teaching'));
+      for (const question of questionsToDelete) {
         if (question.id) {
           await dbHelpers.delete(COLLECTIONS.QUESTIONS, question.id);
         }
@@ -329,27 +381,148 @@ export default function QuestionsForm() {
             type: 'rating' as const,
             required: true,
             category: 'teaching_effectiveness',
-            order: questionNumber
+            order: questionNumber,
+            section: sectionKey,
+            sectionTitle: sectionData.title,
+            questionNumber: i + 1,
+            maxScore: 5,
+            targetRole: activeTab
           };
           
           const result = await dbHelpers.create(COLLECTIONS.QUESTIONS, questionData);
           newQuestions.push({ 
             ...questionData, 
-            id: result.id,
-            section: sectionKey,
-            sectionTitle: sectionData.title,
-            questionNumber: questionNumber,
-            maxScore: 5
+            id: result.id
           });
           questionNumber++;
         }
       }
       
-      setQuestions(newQuestions);
-      alert(`Successfully created ${newQuestions.length} standard evaluation questions!`);
+      // Re-fetch all questions to ensure state is synchronized correctly
+      await fetchQuestions();
+      alert(`Successfully created ${newQuestions.length} standard evaluation questions for ${activeTab}!`);
+    } finally {
+      setIsPopulating(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsPopulating(true);
+    try {
+      let extractedText = '';
+
+      if (file.name.endsWith('.docx')) {
+        const mammoth = await import('mammoth');
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        extractedText = result.value;
+      } else if (file.name.endsWith('.pdf')) {
+        const pdfjs = await import('pdfjs-dist');
+        // Configure worker dynamically
+        pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+        
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        let fullText = '';
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          fullText += pageText + '\n';
+        }
+        extractedText = fullText;
+      } else {
+        alert('Please upload only .docx or .pdf files');
+        setIsPopulating(false);
+        return;
+      }
+
+      // Parse questions from extracted text
+      const lines = extractedText.split('\n').map(l => l.trim()).filter(l => l.length > 10);
+      const newQuestions: any[] = [];
+      
+      const commonHeaders = ['STUDENT', 'EVALUATION', 'FORM', 'APPRAISAL', 'TEACHER', 'STAFF', 'REPORT', 'NAME:', 'DATE:'];
+      
+      lines.forEach((line, index) => {
+        // Skip obvious headers or metadata
+        const upperLine = line.toUpperCase();
+        if (commonHeaders.some(h => upperLine === h || (upperLine.startsWith(h) && upperLine.length < 20))) return;
+        
+        // Detect and strip leading numbers (e.g., "1. ", "2) ", "[3] ")
+        let questionText = line;
+        let detectedNumber = index + 1;
+        const numberMatch = line.match(/^(\[?\d+[.)\]]?)\s*(.+)$/);
+        if (numberMatch) {
+          const numberPart = numberMatch[1].replace(/[^\d]/g, '');
+          if (numberPart) {
+            detectedNumber = parseInt(numberPart, 10);
+            questionText = numberMatch[2].trim();
+          }
+        }
+        
+        // Detect type based on keywords
+        let type: 'rating' | 'text' = 'rating';
+        const textKeywords = ['COMMENT', 'SUGGESTION', 'FEEDBACK', 'DESCRIBE', 'EXPLAIN', 'WHY', 'WHAT', 'HOW', 'REMARK'];
+        if (textKeywords.some(k => upperLine.includes(k)) || line.endsWith('?')) {
+          type = 'text';
+        }
+
+        newQuestions.push({
+          question: questionText,
+          type: type,
+          required: true,
+          category: 'General',
+          section: 'A',
+          sectionTitle: 'Imported Evaluation',
+          questionNumber: detectedNumber,
+          maxScore: 5,
+          targetRole: activeTab
+        });
+      });
+
+      if (newQuestions.length === 0) {
+        alert('Could not find any clear questions in the document. Please ensure questions are on separate lines.');
+        return;
+      }
+
+      setImportPreviewQuestions(newQuestions.map(q => ({ ...q, selected: true })));
+      setIsImportModalOpen(true);
     } catch (error) {
-      console.error('Error populating questions:', error);
-      alert('Failed to populate questions. Please try again.');
+      console.error('Error uploading document:', error);
+      alert('Failed to parse document. Please ensure it is a valid .docx or .pdf file.');
+    } finally {
+      setIsPopulating(false);
+      e.target.value = '';
+    }
+  };
+
+  const finalizeImport = async () => {
+    const selectedToImport = importPreviewQuestions.filter(q => q.selected);
+    if (selectedToImport.length === 0) {
+      alert('No questions selected for import.');
+      return;
+    }
+
+    setIsPopulating(true);
+    try {
+      const createdQuestions = [];
+      for (const q of selectedToImport) {
+        const { selected, ...questionData } = q;
+        const result = await dbHelpers.create(COLLECTIONS.QUESTIONS, questionData);
+        createdQuestions.push({ ...questionData, id: result.id });
+      }
+      await fetchQuestions();
+      setIsImportModalOpen(false);
+      setImportPreviewQuestions([]);
+      alert(`Successfully uploaded ${createdQuestions.length} questions!`);
+    } catch (error) {
+      console.error('Error during final import:', error);
+      alert('Failed to upload some questions.');
     } finally {
       setIsPopulating(false);
     }
@@ -453,6 +626,13 @@ export default function QuestionsForm() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <label className="bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all hover:bg-slate-50 flex items-center gap-2 cursor-pointer shadow-sm group active:scale-95">
+              <svg className="w-4 h-4 text-blue-500 group-hover:translate-y-[-2px] transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Upload Document
+              <input type="file" accept=".docx,.pdf" onChange={handleFileUpload} className="hidden" />
+            </label>
             <button
               onClick={populateStandardQuestions}
               disabled={isPopulating}
@@ -475,26 +655,67 @@ export default function QuestionsForm() {
           </div>
         </div>
 
+        {/* Role Tabs */}
+        <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
+          {['Teaching', 'Non-Teaching', 'General'].map((role) => (
+            <button
+              key={role}
+              onClick={() => setActiveTab(role)}
+              className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                activeTab === role ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {role}
+            </button>
+          ))}
+        </div>
+
         {/* Live Preview Section */}
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/20">
             <div>
-              <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                Questionnaire Structure
-                <span className="text-xs font-black bg-blue-600 text-white px-2 py-0.5 rounded-lg uppercase tracking-widest">{questions.length} Items</span>
-              </h3>
-              <p className="text-xs font-black text-slate-400 mt-1 uppercase tracking-widest">Active evaluation blueprint for OLAG SHS</p>
+              <div className="flex items-center gap-3">
+                <div 
+                  onClick={toggleSelectAll}
+                  className="w-5 h-5 border-2 border-slate-200 rounded-lg flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors"
+                >
+                  {selectedQuestions.length > 0 && (
+                    <div className={`w-2.5 h-2.5 rounded-[2px] bg-blue-600 ${selectedQuestions.length < questions.filter(q => q.targetRole === activeTab || (!q.targetRole && activeTab === 'Teaching')).length ? 'opacity-50' : ''}`}></div>
+                  )}
+                </div>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                  {activeTab} Question Blueprint
+                  <span className="text-xs font-black bg-blue-600 text-white px-2 py-0.5 rounded-lg uppercase tracking-widest">
+                    {questions.filter(q => q.targetRole === activeTab || (!q.targetRole && activeTab === 'Teaching')).length} Items
+                  </span>
+                </h3>
+              </div>
+              <p className="text-xs font-black text-slate-400 mt-1 uppercase tracking-widest">Configuring intelligence for {activeTab.toLowerCase()} personnel</p>
             </div>
-            <button 
-              onClick={() => setIsPreviewOpen(true)}
-              className="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 px-4 py-2.5 rounded-2xl transition-all group"
-            >
-              <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              Live Preview
-            </button>
+            
+            <div className="flex items-center gap-4">
+              {selectedQuestions.length > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center gap-2 text-xs font-black text-rose-600 uppercase tracking-widest hover:bg-rose-50 px-4 py-2.5 rounded-2xl transition-all group"
+                >
+                  <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete Selected ({selectedQuestions.length})
+                </button>
+              )}
+              <button 
+                onClick={() => setIsPreviewOpen(true)}
+                className="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 px-4 py-2.5 rounded-2xl transition-all group"
+              >
+                <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Live Preview
+              </button>
+            </div>
           </div>
           
           <div className="p-10 space-y-6 max-h-[700px] overflow-y-auto scrollbar-hide">
@@ -503,23 +724,42 @@ export default function QuestionsForm() {
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
                 <p className="mt-4 text-slate-500 font-bold">Assembling builder interface...</p>
               </div>
-            ) : questions.length === 0 ? (
+            ) : questions.filter(q => q.targetRole === activeTab || (!q.targetRole && activeTab === 'Teaching')).length === 0 ? (
               <div className="py-20 text-center flex flex-col items-center">
                 <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200 mb-6">
                   <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-black text-slate-900 mb-2">Workspace Empty</h3>
-                <p className="text-slate-400 text-sm max-w-xs mx-auto">Click &quot;Add Question&quot; or &quot;Auto-Populate&quot; to start building your evaluation form.</p>
+                <h3 className="text-xl font-black text-slate-900 mb-2">No {activeTab} Content</h3>
+                <p className="text-slate-400 text-sm max-w-xs mx-auto">Add questions specifically for {activeTab.toLowerCase()} staff to begin.</p>
               </div>
             ) : (
-              questions.map((question, index) => (
+              questions
+                .filter(q => q.targetRole === activeTab || (!q.targetRole && activeTab === 'Teaching'))
+                .map((question, index) => (
                 <div
                   key={question.id}
-                  className="group relative bg-white border border-slate-100 rounded-[2rem] p-8 hover:shadow-xl hover:shadow-slate-200/50 hover:border-blue-100 transition-all duration-300"
+                  className={`group relative bg-white border ${selectedQuestions.includes(question.id || '') ? 'border-blue-600 ring-4 ring-blue-50' : 'border-slate-100'} rounded-[2rem] p-8 hover:shadow-xl hover:shadow-slate-200/50 hover:border-blue-100 transition-all duration-300`}
                 >
-                  <div className="flex items-start justify-between">
+                  <div 
+                    onClick={() => toggleSelect(question.id || '')}
+                    className="absolute top-8 left-8 z-20 cursor-pointer"
+                  >
+                    <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
+                      selectedQuestions.includes(question.id || '') 
+                        ? 'bg-blue-600 border-blue-600' 
+                        : 'bg-white border-slate-200 group-hover:border-blue-400'
+                    }`}>
+                      {selectedQuestions.includes(question.id || '') && (
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start justify-between pl-10">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="p-2.5 bg-slate-50 rounded-xl group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
@@ -722,6 +962,20 @@ export default function QuestionsForm() {
                           onChange={(e) => setFormData({...formData, questionNumber: parseInt(e.target.value) || 1})}
                           className="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold"
                         />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Personnel Type</label>
+                        <select
+                          required
+                          value={formData.targetRole || 'Teaching'}
+                          onChange={(e) => setFormData({...formData, targetRole: e.target.value})}
+                          className="w-full px-6 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold appearance-none cursor-pointer"
+                        >
+                          <option value="Teaching">Teaching Staff</option>
+                          <option value="Non-Teaching">Non-Teaching Staff</option>
+                          <option value="General">General (All Staff)</option>
+                        </select>
                       </div>
                       
                       <div className="space-y-2">
@@ -983,7 +1237,106 @@ export default function QuestionsForm() {
         </div>
         )}
       </div>
-    </DashboardLayout>
+        {/* Import Review Modal */}
+        {isImportModalOpen && (
+          <div className="fixed inset-0 z-[70] overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen p-4">
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsImportModalOpen(false)}></div>
+              
+              <div className="relative bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl border border-slate-100 overflow-hidden animate-scale-up">
+                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Review Extracted Questions</h3>
+                    <p className="text-xs font-black text-slate-400 mt-1 uppercase tracking-widest">Uncheck items that are not questions</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => setImportPreviewQuestions(prev => prev.map(q => ({ ...q, selected: !prev.every(x => x.selected) })))}
+                      className="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline"
+                    >
+                      Toggle All
+                    </button>
+                    <button onClick={() => setIsImportModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-900 rounded-xl transition-colors">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-10 max-h-[60vh] overflow-y-auto space-y-4">
+                  {importPreviewQuestions.map((q, idx) => (
+                    <div 
+                      key={idx}
+                      className={`p-6 rounded-2xl border transition-all flex items-start gap-4 ${q.selected ? 'border-blue-100 bg-blue-50/30 shadow-sm' : 'border-slate-100 bg-white opacity-60'}`}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={q.selected}
+                        onChange={() => setImportPreviewQuestions(prev => {
+                          const updated = [...prev];
+                          updated[idx].selected = !updated[idx].selected;
+                          return updated;
+                        })}
+                        className="mt-1 w-5 h-5 rounded-lg border-2 border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <textarea 
+                          value={q.question}
+                          onChange={(e) => setImportPreviewQuestions(prev => {
+                            const updated = [...prev];
+                            updated[idx].question = e.target.value;
+                            return updated;
+                          })}
+                          className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-900 focus:ring-0 resize-none min-h-[40px]"
+                        />
+                        <div className="flex items-center gap-4 mt-2">
+                          <select 
+                            value={q.type}
+                            onChange={(e) => setImportPreviewQuestions(prev => {
+                              const updated = [...prev];
+                              updated[idx].type = e.target.value;
+                              return updated;
+                            })}
+                            className="text-[10px] font-black uppercase tracking-widest bg-white border border-slate-200 rounded-lg px-2 py-1"
+                          >
+                            <option value="rating">Rating</option>
+                            <option value="text">Text</option>
+                          </select>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Target: {activeTab}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="px-10 py-8 border-t border-slate-50 flex items-center justify-between bg-slate-50/30">
+                  <span className="text-sm font-bold text-slate-500">
+                    {importPreviewQuestions.filter(q => q.selected).length} items selected for import
+                  </span>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => setIsImportModalOpen(false)}
+                      className="px-6 py-3 text-sm font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={finalizeImport}
+                      disabled={isPopulating}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-100 disabled:opacity-50"
+                    >
+                      {isPopulating ? 'Uploading...' : 'Finalize Import'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </DashboardLayout>
     </ProtectedRoute>
   );
 }

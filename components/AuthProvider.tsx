@@ -6,6 +6,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   fullName: string | null;
   role: string | null;
+  staffId: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -17,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [fullName, setFullName] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [staffId, setStaffId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,10 +31,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAuthenticated(true);
           setFullName(data.fullName || null);
           setRole(data.role || null);
+          setStaffId(data.staffId || null);
         } else {
           setIsAuthenticated(false);
           setFullName(null);
           setRole(null);
+          setStaffId(null);
         }
       } catch {
         setIsAuthenticated(false);
@@ -57,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(true);
         setFullName(data.fullName || null);
         setRole(data.role || null);
+        setStaffId(data.staffId || null);
         return true;
       }
       return false;
@@ -75,10 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
     setFullName(null);
     setRole(null);
+    setStaffId(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, fullName, role, login, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, fullName, role, staffId, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

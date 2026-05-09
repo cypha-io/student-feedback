@@ -29,16 +29,18 @@ export const subjects = pgTable('subjects', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Teachers table - using string references to match actual DB structure
+// Teachers table (General Staff)
 export const teachers = pgTable('teachers', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   employeeId: text('employee_id').notNull().unique(),
-  department: text('department').notNull(), // Keep as text to match actual DB
-  class: text('class').notNull(), // Keep as text to match actual DB
+  department: text('department').notNull(),
+  class: text('class').notNull(),
   subjects: text('subjects').array().notNull().default([]),
   email: text('email').notNull(),
   phone: text('phone'),
+  staffType: text('staff_type').notNull().default('Teaching'), // 'Teaching', 'Non-Teaching'
+  role: text('role').notNull().default('Teacher'), // 'Teacher', 'HOD', 'Cleaner', 'Supervisor', etc.
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -80,6 +82,7 @@ export const questions = pgTable('questions', {
   sectionTitle: text('section_title').notNull(),
   questionNumber: integer('question_number').notNull(),
   maxScore: integer('max_score').default(5).notNull(),
+  targetRole: text('target_role').default('Teaching'), // 'Teaching', 'Non-Teaching', or specific role
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -91,10 +94,27 @@ export const feedbacks = pgTable('feedbacks', {
   teacherId: uuid('teacher_id').notNull(),
   subjectId: uuid('subject_id').notNull(),
   classId: uuid('class_id').notNull(),
-  status: text('status').default('pending').notNull(), // 'pending', 'completed', 'draft'
+  status: text('status').default('pending').notNull(), // 'pending', 'completed', 'draft', 'under_review'
   submittedAt: timestamp('submitted_at'),
   rating: integer('rating'),
   comment: text('comment'),
+  appraisalAssignmentId: uuid('appraisal_assignment_id'),
+  reviewStatus: text('review_status').default('none'), // 'none', 'pending', 'reviewed'
+  reviewedBy: uuid('reviewed_by'),
+  isConsolidated: boolean('is_consolidated').default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Appraisal Assignments table
+export const appraisalAssignments = pgTable('appraisal_assignments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  appraiseeId: uuid('appraisee_id').notNull(), // Staff being appraised
+  appraiserId: uuid('appraiser_id'), // Staff or Student appraising
+  appraiserType: text('appraiser_type').notNull(), // 'student', 'staff', 'peer', 'supervisor', 'hod'
+  reviewerId: uuid('reviewer_id'), // Staff reviewing
+  status: text('status').default('pending').notNull(), // 'pending', 'completed', 'under_review', 'finalized'
+  sessionId: text('session_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -163,13 +183,32 @@ export const questionsRelations = relations(questions, ({ many }) => ({
   responses: many(responses),
 }));
 
+export const appraisalAssignmentsRelations = relations(appraisalAssignments, ({ one }) => ({
+  appraisee: one(teachers, {
+    fields: [appraisalAssignments.appraiseeId],
+    references: [teachers.id],
+    relationName: 'appraisee',
+  }),
+  appraiser: one(teachers, {
+    fields: [appraisalAssignments.appraiserId],
+    references: [teachers.id],
+    relationName: 'appraiser',
+  }),
+  reviewer: one(teachers, {
+    fields: [appraisalAssignments.reviewerId],
+    references: [teachers.id],
+    relationName: 'reviewer',
+  }),
+}));
+
 // Admins table for authentication
 export const admins = pgTable('admins', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: text('email').notNull().unique(),
   password: text('password').notNull(),
   fullName: text('full_name').notNull(),
-  role: text('role').notNull().default('manager'), // 'superadmin', 'manager', 'viewer'
+  staffId: uuid('staff_id'), // Link to teachers table
+  role: text('role').notNull().default('manager'), // 'superadmin', 'manager', 'viewer', 'staff'
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

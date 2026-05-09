@@ -89,7 +89,7 @@ export default function TeacherEvaluationReports() {
     return teachers.map(teacher => {
       const teacherFeedbacks = feedbacks.filter(f => f.teacherId === teacher.id);
       const teacherResponses = responses.filter(r => 
-        teacherFeedbacks.some(f => f.$id === r.feedbackId)
+        teacherFeedbacks.some(f => f.id === r.feedbackId)
       );
 
       // Calculate section scores

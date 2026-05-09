@@ -16,7 +16,7 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL must be set in environment variables');
 }
 
-const sql = neon(databaseUrl);
+const sql = neon(databaseUrl, { disableWarningInBrowsers: true });
 export const db = drizzle(sql, { schema });
 
 // Helper functions for database operations
@@ -75,6 +75,7 @@ export const TABLES = {
   FEEDBACKS: schema.feedbacks,
   RESPONSES: schema.responses,
   ADMINS: schema.admins,
+  APPRAISAL_ASSIGNMENTS: schema.appraisalAssignments,
 };
 
 // Export schema and utilities

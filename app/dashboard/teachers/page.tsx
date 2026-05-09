@@ -7,12 +7,13 @@ import { useNotification } from '@/components/NotificationSystem';
 import { useConfirmation } from '@/components/ConfirmationDialog';
 import { Teacher, Department, Class as ClassType, Subject } from '@/types/database';
 
-export default function ManageTeachers() {
+export default function ManagePersonnel() {
   const { addNotification } = useNotification();
   const { confirm } = useConfirmation();
   
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(false);
+  const [filterType, setFilterType] = useState('All');
   const [departments] = useState<Department[]>([]);
   const [classes, setClasses] = useState<ClassType[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -26,6 +27,8 @@ export default function ManageTeachers() {
     subjects: [],
     email: '',
     phone: '',
+    staffType: 'Teaching',
+    role: 'Teacher',
   });
 
   // Load data from database on component mount
@@ -147,6 +150,8 @@ export default function ManageTeachers() {
       subjects: [],
       email: '',
       phone: '',
+      staffType: 'Teaching',
+      role: 'Teacher',
     });
     setEditingTeacher(null);
     setIsModalOpen(false);
@@ -162,6 +167,8 @@ export default function ManageTeachers() {
       subjects: teacher.subjects,
       email: teacher.email,
       phone: teacher.phone || '',
+      staffType: teacher.staffType || 'Teaching',
+      role: teacher.role || 'Teacher',
     });
     setIsModalOpen(true);
   };
@@ -211,10 +218,10 @@ export default function ManageTeachers() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Teacher Management
+              Personnel Management
             </h2>
             <p className="text-slate-500 mt-1 text-sm font-medium">
-              Maintain a detailed database of teaching staff and their assignments
+              Maintain a detailed database of all staff (Teaching & Non-Teaching) and their assignments
             </p>
           </div>
           <button
@@ -224,7 +231,7 @@ export default function ManageTeachers() {
             <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
             </svg>
-            Add New Teacher
+            Add New Personnel
           </button>
         </div>
 
@@ -235,6 +242,19 @@ export default function ManageTeachers() {
               Staff Records <span className="ml-2 text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-lg text-xs uppercase tracking-widest">{teachers.length}</span>
             </h3>
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 p-1 bg-white border border-slate-200 rounded-2xl">
+                {['All', 'Teaching', 'Non-Teaching'].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterType(type)}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      filterType === type ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
               <div className="relative group">
                 <input 
                   type="text" 
@@ -276,11 +296,13 @@ export default function ManageTeachers() {
                         </svg>
                       </div>
                       <h3 className="text-xl font-black text-slate-900 mb-2">No Personnel Identified</h3>
-                      <p className="text-slate-400 text-sm max-w-xs mx-auto">Start by onboarding your first teaching staff to begin evaluation telemetry.</p>
+                      <p className="text-slate-400 text-sm max-w-xs mx-auto">Start by onboarding your first staff member to begin evaluation telemetry.</p>
                     </td>
                   </tr>
                 ) : (
-                  teachers.map((teacher) => (
+                  teachers
+                    .filter(t => filterType === 'All' || t.staffType === filterType)
+                    .map((teacher) => (
                   <tr key={teacher.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="py-5 px-8">
                       <div className="flex items-center gap-4">
@@ -303,8 +325,13 @@ export default function ManageTeachers() {
                           {teacher.department}
                         </div>
                         <div className="text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md inline-block uppercase tracking-wider">
-                          {teacher.class}
+                          {teacher.staffType} - {teacher.role}
                         </div>
+                        {teacher.staffType === 'Teaching' && (
+                          <div className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md inline-block uppercase tracking-wider ml-2">
+                            {teacher.class}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="py-5 px-8">
@@ -340,7 +367,7 @@ export default function ManageTeachers() {
                         <button
                           onClick={() => handleEdit(teacher)}
                           className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-xl transition-all group/btn"
-                          title="Edit Teacher"
+                          title="Edit Record"
                         >
                           <svg className="w-4 h-4 group-hover/btn:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -349,7 +376,7 @@ export default function ManageTeachers() {
                         <button
                           onClick={() => handleDelete(teacher.id || '')}
                           className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all group/btn"
-                          title="Delete Teacher"
+                          title="Delete Record"
                         >
                           <svg className="w-4 h-4 group-hover/btn:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -375,7 +402,7 @@ export default function ManageTeachers() {
                 <div className="px-10 pt-10 pb-6 border-b border-slate-50 flex items-center justify-between">
                   <div>
                     <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                      {editingTeacher ? 'Update Teacher Record' : 'Onboard New Teacher'}
+                      {editingTeacher ? 'Update Personnel Record' : 'Onboard New Personnel'}
                     </h3>
                     <p className="text-xs font-black text-slate-400 mt-1 uppercase tracking-widest">Fill in the professional details below</p>
                   </div>
@@ -413,6 +440,35 @@ export default function ManageTeachers() {
                         placeholder="e.g. EMP-2024-001"
                         value={formData.employeeId}
                         onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Staff Type
+                      </label>
+                      <select
+                        required
+                        value={formData.staffType}
+                        onChange={(e) => setFormData({...formData, staffType: e.target.value as 'Teaching' | 'Non-Teaching'})}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium appearance-none cursor-pointer"
+                      >
+                        <option value="Teaching">Teaching Staff</option>
+                        <option value="Non-Teaching">Non-Teaching Staff</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Designated Role
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Teacher, Cleaner, HOD, Supervisor"
+                        value={formData.role}
+                        onChange={(e) => setFormData({...formData, role: e.target.value})}
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
                       />
                     </div>
@@ -513,7 +569,7 @@ export default function ManageTeachers() {
                       className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-sm shadow-lg shadow-blue-100 transition-all disabled:opacity-50 flex items-center gap-2"
                     >
                       {loading && <div className="w-4 h-4 border-2 border-white/30 border-b-white rounded-full animate-spin"></div>}
-                      {editingTeacher ? 'Update Staff Member' : 'Register Teacher'}
+                      {editingTeacher ? 'Update Staff Member' : 'Register Personnel'}
                     </button>
                   </div>
                 </form>
