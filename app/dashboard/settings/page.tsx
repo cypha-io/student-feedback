@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { House, Subject, Class, Department } from '@/types/database';
 import { useNotification, showSuccess, showError } from '@/components/NotificationSystem';
@@ -86,7 +86,7 @@ export default function Settings() {
     if (savedSettings) {
       setWebsiteSettings(JSON.parse(savedSettings));
     }
-  }, [activeTab]);
+  }, [activeTab, fetchHouses, fetchSubjects, fetchClasses, fetchDepartments, fetchRolePermissions]);
 
   // Lock background scroll when modals are open
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function Settings() {
     };
   }, [showHouseModal, showSubjectModal, showClassModal, showDepartmentModal]);
 
-  const fetchRolePermissions = async () => {
+  const fetchRolePermissions = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/admin/role-permissions');
@@ -119,7 +119,7 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [notifyError]);
 
   const allPermissionOptions = [
     { key: 'viewOverview', label: 'View dashboard overview' },
@@ -159,7 +159,7 @@ export default function Settings() {
     }
   };
 
-  const fetchHouses = async () => {
+  const fetchHouses = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/houses');
@@ -172,9 +172,9 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/subjects');
@@ -187,9 +187,9 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/classes');
@@ -202,9 +202,9 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/departments');
@@ -217,7 +217,7 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Fetch departments for subject modal
   const fetchDepartmentsForModal = async () => {

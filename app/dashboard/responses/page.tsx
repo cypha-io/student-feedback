@@ -49,11 +49,8 @@ export default function StudentResponsesPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
-    const loadResponses = async () => {
-      await fetchResponses();
-    };
-    loadResponses();
-  }, []);
+    fetchResponses();
+  }, [fetchResponses]);
 
   // Lock background scroll when modal is open
   useEffect(() => {

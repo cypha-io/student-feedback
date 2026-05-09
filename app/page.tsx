@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import styles from './homepage.module.css';
 
 export default function Home() {
@@ -42,7 +43,7 @@ export default function Home() {
           {/* Compact Header */}
           <div className="text-center space-y-4 relative z-10">
             <div className="mx-auto w-28 h-28 flex items-center justify-center transform hover:scale-105 transition-all duration-300">
-              <img src="https://olagshs.edu.gh/wp-content/uploads/2025/11/cropped-olag_logo3-1-1.png" alt="OLAG SHS Logo" className="w-24 h-24 object-contain" />
+              <Image src="https://olagshs.edu.gh/wp-content/uploads/2025/11/cropped-olag_logo3-1-1.png" alt="OLAG SHS Logo" width={96} height={96} className="object-contain" />
             </div>
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-900 bg-clip-text text-transparent leading-tight">

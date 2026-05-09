@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '../../components/AuthProvider';
 
 export default function AdminLogin() {
@@ -45,7 +46,7 @@ export default function AdminLogin() {
         <form onSubmit={handleLogin} className="bg-white/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-white/20 w-full max-w-md mx-auto space-y-6 relative">
           <div className="flex flex-col items-center space-y-2 mb-4">
             <div className="w-28 h-28 flex items-center justify-center bg-transparent">
-              <img src="https://olagshs.edu.gh/wp-content/uploads/2025/11/cropped-olag_logo3-1-1.png" alt="OLAG SHS Logo" className="w-28 h-28 object-contain" />
+              <Image src="https://olagshs.edu.gh/wp-content/uploads/2025/11/cropped-olag_logo3-1-1.png" alt="OLAG SHS Logo" width={112} height={112} className="object-contain" />
             </div>
             <p className="text-gray-600 text-center">Admin Portal - Sign in to dashboard</p>
             <p className="text-xs text-gray-500 text-center">Built by SwapGPA Technologies Limited | OLAGSHS Deployment</p>
